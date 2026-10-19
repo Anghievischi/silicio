@@ -46,7 +46,7 @@ jobs:
       - name: Testes do backend
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib
 
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Assina os pacotes para a atualização automática (chave pública em tauri.conf.json).
