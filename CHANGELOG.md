@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- Release workflow: the release is created first as a pre-release, the packages are uploaded to it, and only then it becomes the latest release, so the direct download links never point to a release without files.
+
 ## [0.1.3]
 
 ### Added

@@ -1,17 +1,37 @@
 name: Release
 
 # Gera os instaladores de Windows e Linux e publica numa release do GitHub
-# sempre que uma tag vX.Y.Z é enviada (ou manualmente pela aba Actions).
+# sempre que uma tag vX.Y.Z é enviada.
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # 1. Cria a release como pré-release: os links "latest" continuam na versão
+  #    anterior até todos os arquivos estarem enviados.
+  create:
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --prerelease --latest=false \
+              --title "Silício $TAG" --notes-file .github/release-notes.md
+          fi
+          echo "id=$(gh release view "$TAG" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
+
+  # 2. Compila, assina e envia os pacotes de cada sistema para essa release.
   build:
+    needs: create
     strategy:
       fail-fast: false
       matrix:
@@ -55,31 +75,12 @@ jobs:
           # Gera os arquivos .sig e o latest.json só aqui, para quem compila localmente não precisar da chave.
           args: --config '{"bundle":{"createUpdaterArtifacts":true}}'
           updaterJsonPreferNsis: true
-          tagName: ${{ github.ref_name }}
-          releaseName: Silício ${{ github.ref_name }}
-          releaseBody: |
-            ## Downloads
-
-            **Windows 10/11**
-            - `Silicio-setup.exe` — instalador (recomendado)
-            - `Silicio-portable.exe` — executável único, sem instalar
-            - `Silicio.msi` — para instalação gerenciada (empresas)
-
-            **Linux**
-            - `Silicio-amd64.deb` — Debian, Ubuntu, Mint, Pop!_OS
-            - `Silicio-x86_64.rpm` — Fedora, openSUSE
-            - `Silicio-x86_64.AppImage` — qualquer distribuição (sem as leituras avançadas)
-
-            Os arquivos com a versão no nome são os mesmos, gerados pelo Tauri.
-
-            Instruções completas no [README](https://github.com/${{ github.repository }}#instalação).
-          releaseDraft: false
-          prerelease: false
+          releaseId: ${{ needs.create.outputs.id }}
 
       # Cópias com nome fixo, para os links de download do README nunca mudarem:
       # https://github.com/<repo>/releases/latest/download/<nome>
       - name: Arquivos com nome fixo (Windows)
-        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'Windows'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,7 +92,7 @@ jobs:
           gh release upload "${{ github.ref_name }}" Silicio-portable.exe Silicio-setup.exe Silicio.msi --clobber
 
       - name: Arquivos com nome fixo (Linux)
-        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'Linux'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -100,3 +101,12 @@ jobs:
           cp $B/rpm/*.rpm Silicio-x86_64.rpm
           cp $B/appimage/*.AppImage Silicio-x86_64.AppImage
           gh release upload "${{ github.ref_name }}" Silicio-amd64.deb Silicio-x86_64.rpm Silicio-x86_64.AppImage --clobber
+
+  # 3. Com tudo enviado, vira a versão oficial e passa a ser a "latest".
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" -R "${{ github.repository }}" --prerelease=false --latest
