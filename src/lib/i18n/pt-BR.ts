@@ -48,6 +48,8 @@ export const ptBR = {
     cores: "Núcleos",
     coresHint: "GHz por thread; a barra mostra o uso.",
     l3Cache: "Cache L3",
+    tempAcpi: "zona térmica ACPI",
+    tempAcpiHint: "Sem driver, o Windows só expõe a zona térmica da placa, que pode diferir do núcleo.",
     cache: "Cache",
     cacheKind: { data: "Dados", instruction: "Instruções", unified: "Unificado" } as Record<string, string>,
     advanced: "Leituras avançadas",

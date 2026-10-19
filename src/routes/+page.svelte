@@ -114,6 +114,9 @@
       <span class="muted">{t().common.temperature}</span>
       {#if live?.temperature_c != null}
         <strong class="num" style:color={tempColor(live.temperature_c)}>{live.temperature_c.toFixed(0)} °C</strong>
+        {#if live.temperature_source === "acpi"}
+          <span class="muted source" title={t().cpu.tempAcpiHint}>{t().cpu.tempAcpi}</span>
+        {/if}
       {:else}
         <strong class="muted">—</strong>
       {/if}
@@ -320,6 +323,10 @@
     font-size: 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
+  }
+
+  .source {
+    font-size: 11px;
   }
 
   .adv {
