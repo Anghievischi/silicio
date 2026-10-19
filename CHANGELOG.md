@@ -5,9 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.2]
+
 ### Added
 
 - English interface. The language follows the system and can be switched live at the bottom of the sidebar; the choice is remembered.
+
+### Fixed
+
+- SPD voltage showed floating-point noise (`1.2000000476837158 V`).
 
 ### Changed
 
@@ -42,6 +48,7 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Anghievischi/silicio/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Anghievischi/silicio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Anghievischi/silicio/releases/tag/v0.1.0
