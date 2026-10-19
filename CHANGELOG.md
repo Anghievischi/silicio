@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.3]
+
 ### Added
 
 - **Windows:** chipset and southbridge names, PCIe link of each device, graphics cards through DXGI (correct VRAM above 4 GB), GPU load and VRAM usage for every vendor through Windows performance counters, CPU microcode, max clock (Intel) and ACPI thermal zone temperature when no CPU sensor is available (marked as such).
@@ -55,7 +57,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Anghievischi/silicio/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Anghievischi/silicio/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Anghievischi/silicio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Anghievischi/silicio/releases/tag/v0.1.0
