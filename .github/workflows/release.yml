@@ -54,24 +54,42 @@ jobs:
             ## Downloads
 
             **Windows 10/11**
-            - `Silicio_*_x64-setup.exe` — instalador (recomendado)
+            - `Silicio-setup.exe` — instalador (recomendado)
             - `Silicio-portable.exe` — executável único, sem instalar
-            - `Silicio_*_x64_en-US.msi` — para instalação gerenciada (empresas)
+            - `Silicio.msi` — para instalação gerenciada (empresas)
 
             **Linux**
-            - `.deb` — Debian, Ubuntu, Mint, Pop!_OS
-            - `.rpm` — Fedora, openSUSE
-            - `.AppImage` — qualquer distribuição (sem as leituras avançadas)
+            - `Silicio-amd64.deb` — Debian, Ubuntu, Mint, Pop!_OS
+            - `Silicio-x86_64.rpm` — Fedora, openSUSE
+            - `Silicio-x86_64.AppImage` — qualquer distribuição (sem as leituras avançadas)
+
+            Os arquivos com a versão no nome são os mesmos, gerados pelo Tauri.
 
             Instruções completas no [README](https://github.com/${{ github.repository }}#instalação).
           releaseDraft: false
           prerelease: false
 
-      - name: Executável portátil (Windows)
+      # Cópias com nome fixo, para os links de download do README nunca mudarem:
+      # https://github.com/<repo>/releases/latest/download/<nome>
+      - name: Arquivos com nome fixo (Windows)
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          B=src-tauri/target/release/bundle
           cp src-tauri/target/release/silicio.exe Silicio-portable.exe
-          gh release upload "${{ github.ref_name }}" Silicio-portable.exe --clobber
+          cp $B/nsis/*-setup.exe Silicio-setup.exe
+          cp $B/msi/*.msi Silicio.msi
+          gh release upload "${{ github.ref_name }}" Silicio-portable.exe Silicio-setup.exe Silicio.msi --clobber
+
+      - name: Arquivos com nome fixo (Linux)
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          B=src-tauri/target/release/bundle
+          cp $B/deb/*.deb Silicio-amd64.deb
+          cp $B/rpm/*.rpm Silicio-x86_64.rpm
+          cp $B/appimage/*.AppImage Silicio-x86_64.AppImage
+          gh release upload "${{ github.ref_name }}" Silicio-amd64.deb Silicio-x86_64.rpm Silicio-x86_64.AppImage --clobber

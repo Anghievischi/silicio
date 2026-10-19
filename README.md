@@ -7,17 +7,27 @@ Feito com **Tauri 2** (backend em Rust) e **Svelte 5** (interface).
 
 ![Ícone do Silício](packaging/icon/silicio.png)
 
-## Instalação
+## Download
 
-Todos os arquivos ficam na [página da última versão](https://github.com/Anghievischi/silicio/releases/latest).
+| Sistema | Download direto |
+|---------|-----------------|
+| **Windows 10/11** — instalador | [⬇ Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe) |
+| **Windows 10/11** — portátil, sem instalar | [⬇ Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe) |
+| **Windows** — MSI (empresas) | [⬇ Silicio.msi](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio.msi) |
+| **Ubuntu, Debian, Mint, Pop!_OS** | [⬇ Silicio-amd64.deb](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-amd64.deb) |
+| **Fedora, openSUSE** | [⬇ Silicio-x86_64.rpm](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.rpm) |
+| **Qualquer Linux** — AppImage | [⬇ Silicio-x86_64.AppImage](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.AppImage) |
+
+Os links sempre apontam para a versão mais recente. Versões anteriores estão
+na [página de releases](https://github.com/Anghievischi/silicio/releases).
+
+## Instalação
 
 ### Windows 10 e 11
 
-| Arquivo | Para quê |
-|---------|----------|
-| `Silicio_<versão>_x64-setup.exe` | Instalador. Baixe, abra e siga os passos. |
-| `Silicio-portable.exe` | Executável único: roda sem instalar (ex.: num pendrive). |
-| `Silicio_<versão>_x64_en-US.msi` | Instalação gerenciada em empresas. |
+Baixe o **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe)**, abra e siga os passos.
+Se preferir não instalar, use o **[Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe)**:
+é só abrir.
 
 O app ainda não tem assinatura digital, então o Windows SmartScreen pode avisar
 "O Windows protegeu o computador". Clique em **Mais informações** → **Executar
@@ -26,33 +36,33 @@ instalador baixa sozinho.
 
 ### Linux
 
-**Debian, Ubuntu, Mint, Pop!_OS** (`.deb`):
+**Ubuntu, Debian, Mint, Pop!_OS** (`.deb`):
 
 ```bash
-wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio_0.1.0_amd64.deb
-sudo apt install ./Silicio_0.1.0_amd64.deb
+wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-amd64.deb
+sudo apt install ./Silicio-amd64.deb
 ```
 
 **Fedora, openSUSE** (`.rpm`):
 
 ```bash
-sudo dnf install https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-0.1.0-1.x86_64.rpm
+sudo dnf install https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.rpm
 ```
 
 **Qualquer distribuição** (AppImage, sem instalar):
 
 ```bash
-wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio_0.1.0_amd64.AppImage
-chmod +x Silicio_0.1.0_amd64.AppImage
-./Silicio_0.1.0_amd64.AppImage
+wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.AppImage
+chmod +x Silicio-x86_64.AppImage
+./Silicio-x86_64.AppImage
 ```
 
 **Arch Linux**: use o AppImage acima ou compile a partir do código (seção
 [Rodando](#rodando)). O `.deb` também pode ser convertido com o `debtap`.
 
-Os pacotes `.deb` e `.rpm` incluem o helper das leituras avançadas e a regra do
-polkit. O AppImage não inclui o helper, então soquete, tensão e bus real não
-aparecem nele.
+Depois de instalado, o Silício aparece no menu de aplicativos. Os pacotes `.deb`
+e `.rpm` incluem o helper das leituras avançadas e a regra do polkit; o
+AppImage não inclui, então soquete, tensão e bus real não aparecem nele.
 
 Para ver os módulos de memória na aba SPD, o driver do SPD precisa estar
 carregado. Na maioria das distribuições isso é automático; se a aba ficar
