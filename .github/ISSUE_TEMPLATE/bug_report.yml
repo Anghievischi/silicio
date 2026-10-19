@@ -51,5 +51,5 @@ body:
       label: Hardware report / Relatório do hardware
       description: |
         Output of `silicio --json` (Windows: `Silicio.exe --json > report.json`), or "Copiar JSON" on the Processor tab.
-        It contains no serial numbers.
+        It contains no serial numbers. If the app does not open, attach `silicio-crash.log` from your temp folder (`%TEMP%` on Windows) instead.
       render: json

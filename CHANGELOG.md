@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Fixed
+
+- **Windows: the app did not open.** Reading CPU sensors initialized COM in multithreaded mode on the main thread before the window was created, so the window's `OleInitialize` failed with `RPC_E_CHANGED_MODE` and the app closed silently. Hardware commands now run on worker threads and sensors are created on first use.
+
+### Added
+
+- Crash log: fatal errors are written to `silicio-crash.log` in the system temp folder (`%TEMP%` on Windows, `/tmp` on Linux).
+- Smoke test that opens the real window and visits every tab; it runs on Windows in CI and caught the bug above.
+
 ## [0.1.0]
 
 First public version.
@@ -23,5 +34,6 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Anghievischi/silicio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Anghievischi/silicio/releases/tag/v0.1.0

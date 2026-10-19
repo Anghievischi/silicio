@@ -78,6 +78,8 @@ Baixe o **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/l
 
 O Windows 10 e 11 já trazem o WebView2 que o app usa. Se faltar, o instalador baixa sozinho.
 
+Se o app não abrir, procure o arquivo `silicio-crash.log` na pasta temporária (digite `%TEMP%` na barra de endereço do Explorer) e anexe num [relato de bug](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
+
 ### Linux
 
 **Ubuntu, Debian, Mint, Pop!_OS**

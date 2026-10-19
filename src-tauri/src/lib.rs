@@ -10,46 +10,70 @@ use hw::privileged::PrivilegedInfo;
 use hw::spd::{self, SpdModule};
 use std::process::Command;
 use std::sync::Mutex;
+use std::time::Duration;
 use sysinfo::System;
+use tauri::{AppHandle, Manager};
 
-#[tauri::command]
-fn cpu_info() -> CpuInfo {
-    cpu::read_static()
+/// Executa a leitura num thread de trabalho.
+///
+/// Comandos síncronos do Tauri rodam no thread principal. No Windows várias
+/// leituras usam WMI, que inicializa o COM em modo multithread; no thread da
+/// janela (que usa COM single-thread) isso falha ou derruba o app.
+async fn off_main<T, F>(f: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Trava um estado gerenciado, recuperando-o se outro thread entrou em pânico.
+fn locked<T: Send + 'static, R>(app: &AppHandle, f: impl FnOnce(&mut T) -> R) -> R {
+    let state = app.state::<Mutex<T>>();
+    let mut guard = state.lock().unwrap_or_else(|e| e.into_inner());
+    f(&mut guard)
 }
 
 #[tauri::command]
-fn cpu_live(sampler: tauri::State<'_, Mutex<LiveSampler>>) -> CpuLive {
-    sampler.lock().unwrap_or_else(|e| e.into_inner()).sample()
+async fn cpu_info() -> Result<CpuInfo, String> {
+    off_main(cpu::read_static).await
 }
 
 #[tauri::command]
-fn board_info() -> BoardInfo {
-    board::read()
+async fn cpu_live(app: AppHandle) -> Result<CpuLive, String> {
+    off_main(move || locked(&app, LiveSampler::sample)).await
 }
 
 #[tauri::command]
-fn memory_info() -> MemoryInfo {
-    memory::read()
+async fn board_info() -> Result<BoardInfo, String> {
+    off_main(board::read).await
 }
 
 #[tauri::command]
-fn memory_live(sys: tauri::State<'_, Mutex<System>>) -> MemoryLive {
-    memory::read_live(&mut sys.lock().unwrap_or_else(|e| e.into_inner()))
+async fn memory_info() -> Result<MemoryInfo, String> {
+    off_main(memory::read).await
 }
 
 #[tauri::command]
-fn gpu_info(sampler: tauri::State<'_, Mutex<GpuSampler>>) -> Vec<Gpu> {
-    sampler.lock().unwrap_or_else(|e| e.into_inner()).info()
+async fn memory_live(app: AppHandle) -> Result<MemoryLive, String> {
+    off_main(move || locked(&app, memory::read_live)).await
 }
 
 #[tauri::command]
-fn gpu_live(sampler: tauri::State<'_, Mutex<GpuSampler>>) -> Vec<GpuLive> {
-    sampler.lock().unwrap_or_else(|e| e.into_inner()).live()
+async fn gpu_info(app: AppHandle) -> Result<Vec<Gpu>, String> {
+    off_main(move || locked(&app, |s: &mut GpuSampler| s.info())).await
 }
 
 #[tauri::command]
-fn spd_info() -> Vec<SpdModule> {
-    spd::read()
+async fn gpu_live(app: AppHandle) -> Result<Vec<GpuLive>, String> {
+    off_main(move || locked(&app, |s: &mut GpuSampler| s.live())).await
+}
+
+#[tauri::command]
+async fn spd_info() -> Result<Vec<SpdModule>, String> {
+    off_main(spd::read).await
 }
 
 /// Roda o benchmark fora da thread principal; `threads` vazio usa todas as threads.
@@ -57,9 +81,7 @@ fn spd_info() -> Vec<SpdModule> {
 async fn bench_run(threads: Option<usize>, seconds: u64) -> Result<BenchResult, String> {
     let threads = threads.unwrap_or_else(bench::available_threads);
     let seconds = seconds.clamp(1, 60);
-    tauri::async_runtime::spawn_blocking(move || bench::benchmark(threads, seconds))
-        .await
-        .map_err(|e| e.to_string())
+    off_main(move || bench::benchmark(threads, seconds)).await
 }
 
 #[tauri::command]
@@ -87,7 +109,7 @@ pub use hw::privileged::read as privileged_read;
 /// Roda o `silicio-helper` como root via pkexec (o polkit pede a senha).
 #[tauri::command]
 async fn privileged_info() -> Result<PrivilegedInfo, String> {
-    tauri::async_runtime::spawn_blocking(|| {
+    off_main(|| {
         // Instalado, o helper fica em /usr/lib/silicio (caminho da política do polkit);
         // em desenvolvimento, ao lado do executável.
         let exe = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -110,14 +132,54 @@ async fn privileged_info() -> Result<PrivilegedInfo, String> {
             _ => Err(String::from_utf8_lossy(&out.stderr).trim().to_string()),
         }
     })
-    .await
-    .map_err(|e| e.to_string())?
+    .await?
+}
+
+/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…6) e fecha.
+/// Usado pelo teste `tests/smoke.rs` para garantir que o app abre de verdade.
+fn smoke_test(app: AppHandle) {
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(4));
+        for tab in 1..=6 {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.eval(format!(
+                    "window.dispatchEvent(new KeyboardEvent('keydown', {{ key: '{tab}', ctrlKey: true }}))"
+                ));
+            }
+            std::thread::sleep(Duration::from_secs(3));
+        }
+        app.exit(0);
+    });
+}
+
+/// Arquivo onde falhas fatais são registradas. No Windows o app não tem console,
+/// então sem isso um crash fecha a janela sem deixar rastro.
+pub fn crash_log_path() -> std::path::PathBuf {
+    std::env::temp_dir().join("silicio-crash.log")
+}
+
+fn install_crash_log() {
+    let default = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let report = format!(
+            "Silício {} ({} {})\n{info}\n\n{}\n",
+            env!("CARGO_PKG_VERSION"),
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+            std::backtrace::Backtrace::force_capture()
+        );
+        let _ = std::fs::write(crash_log_path(), report);
+        default(info);
+    }));
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_crash_log();
+    let has_flag = |flag: &str| std::env::args().any(|a| a == flag);
+
     // `silicio --json` imprime o relatório e sai, sem abrir janela.
-    if std::env::args().any(|a| a == "--json") {
+    if has_flag("--json") {
         let gpus = GpuSampler::new();
         let report = serde_json::json!({
             "cpu": cpu::read_static(),
@@ -135,7 +197,7 @@ pub fn run() {
     }
 
     // `silicio --bench` roda o benchmark (5 s single + 5 s multi) e imprime o resultado.
-    if std::env::args().any(|a| a == "--bench") {
+    if has_flag("--bench") {
         let single = bench::benchmark(1, 5);
         let multi = bench::benchmark(bench::available_threads(), 5);
         let report = serde_json::json!({
@@ -150,12 +212,20 @@ pub fn run() {
         return;
     }
 
+    let smoke = has_flag("--smoke-test");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(Mutex::new(LiveSampler::new()))
         .manage(Mutex::new(System::new()))
         .manage(Mutex::new(GpuSampler::new()))
         .manage(Mutex::new(Stress::default()))
+        .setup(move |app| {
+            if smoke {
+                smoke_test(app.handle().clone());
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             cpu_info,
             cpu_live,

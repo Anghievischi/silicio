@@ -81,6 +81,8 @@ Download **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/
 
 Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
 
+If the app does not open, look for `silicio-crash.log` in your temp folder (type `%TEMP%` in the Explorer address bar) and attach it to a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
+
 ### Linux
 
 **Ubuntu, Debian, Mint, Pop!_OS**

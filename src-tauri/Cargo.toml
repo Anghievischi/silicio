@@ -1,6 +1,6 @@
 [package]
 name = "silicio"
-version = "0.1.0"
+version = "0.1.1"
 description = "Silício — informações de hardware com visual moderno"
 authors = ["Studio Alpha"]
 edition = "2024"
@@ -14,6 +14,12 @@ default-run = "silicio"
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "silicio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+# Embute a interface compilada no executável. O `tauri dev` roda com
+# --no-default-features para usar o servidor do Vite no lugar.
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

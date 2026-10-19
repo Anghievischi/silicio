@@ -132,7 +132,10 @@ fn vendor_name(vendor_id: &str) -> &str {
 /// entre duas leituras, então a primeira amostra sempre vem zerada.
 pub struct LiveSampler {
     sys: System,
-    components: Components,
+    /// Criado na primeira leitura. No Windows os sensores usam WMI, que inicializa
+    /// o COM em modo multithread; se isso acontecer no thread principal antes da
+    /// janela abrir, o `OleInitialize` do Tauri falha e o app fecha.
+    components: Option<Components>,
 }
 
 impl LiveSampler {
@@ -141,13 +144,16 @@ impl LiveSampler {
             sys: System::new_with_specifics(
                 RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()),
             ),
-            components: Components::new_with_refreshed_list(),
+            components: None,
         }
     }
 
     pub fn sample(&mut self) -> CpuLive {
         self.sys.refresh_cpu_specifics(CpuRefreshKind::everything());
-        self.components.refresh(false);
+        match &mut self.components {
+            Some(components) => components.refresh(false),
+            None => self.components = Some(Components::new_with_refreshed_list()),
+        }
 
         let threads: Vec<ThreadLive> = self
             .sys
@@ -174,6 +180,7 @@ impl LiveSampler {
         const LABELS: [&str; 4] = ["tctl", "tdie", "package id", "cpu"];
         self.components
             .iter()
+            .flatten()
             .find(|c| {
                 let label = c.label().to_lowercase();
                 LABELS.iter().any(|l| label.contains(l))
