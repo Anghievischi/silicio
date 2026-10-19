@@ -18,7 +18,8 @@ First public version.
 - **Graphics** tab: AMD and Intel through Linux sysfs, NVIDIA through NVML; clocks, load, temperature, power and VRAM.
 - Root helper (`silicio-helper`) started with `pkexec` for socket, core voltage and real bus clock on Linux.
 - Windows support through WMI for BIOS, memory modules and graphics adapters.
-- `--json` report, light and dark theme, Ctrl+1…5 shortcuts.
+- **Benchmark** tab: single-thread and multi-thread scores, multi/single ratio, history of the last 10 runs, and a stress test with live clock and temperature charts that warns about sustained throttling.
+- `--json` report, `--bench` scores, light and dark theme, Ctrl+1…6 shortcuts.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 

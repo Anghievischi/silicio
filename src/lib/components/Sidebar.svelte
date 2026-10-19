@@ -1,12 +1,12 @@
 <script lang="ts" module>
-  // As abas seguem as do CPU-Z; as sem rota ainda não foram implementadas.
+  // As abas seguem as do CPU-Z.
   export const tabs = [
     { href: "/", label: "Processador", icon: "◧" },
     { href: "/placa-mae", label: "Placa-mãe", icon: "▦" },
     { href: "/memoria", label: "Memória", icon: "▤" },
     { href: "/spd", label: "Módulos (SPD)", icon: "▥" },
     { href: "/graficos", label: "Gráficos", icon: "◩" },
-    { href: null, label: "Benchmark", icon: "◔" },
+    { href: "/benchmark", label: "Benchmark", icon: "◔" },
   ];
 </script>
 

@@ -1,5 +1,7 @@
+mod bench;
 mod hw;
 
+use bench::{BenchResult, Stress, StressStatus};
 use hw::board::{self, BoardInfo};
 use hw::cpu::{self, CpuInfo, CpuLive, LiveSampler};
 use hw::gpu::{Gpu, GpuLive, GpuSampler};
@@ -48,6 +50,35 @@ fn gpu_live(sampler: tauri::State<'_, Mutex<GpuSampler>>) -> Vec<GpuLive> {
 #[tauri::command]
 fn spd_info() -> Vec<SpdModule> {
     spd::read()
+}
+
+/// Roda o benchmark fora da thread principal; `threads` vazio usa todas as threads.
+#[tauri::command]
+async fn bench_run(threads: Option<usize>, seconds: u64) -> Result<BenchResult, String> {
+    let threads = threads.unwrap_or_else(bench::available_threads);
+    let seconds = seconds.clamp(1, 60);
+    tauri::async_runtime::spawn_blocking(move || bench::benchmark(threads, seconds))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn stress_start(stress: tauri::State<'_, Mutex<Stress>>) -> StressStatus {
+    let mut stress = stress.lock().unwrap_or_else(|e| e.into_inner());
+    stress.start();
+    stress.status()
+}
+
+#[tauri::command]
+fn stress_stop(stress: tauri::State<'_, Mutex<Stress>>) -> StressStatus {
+    let mut stress = stress.lock().unwrap_or_else(|e| e.into_inner());
+    stress.stop();
+    stress.status()
+}
+
+#[tauri::command]
+fn stress_status(stress: tauri::State<'_, Mutex<Stress>>) -> StressStatus {
+    stress.lock().unwrap_or_else(|e| e.into_inner()).status()
 }
 
 /// Usado pelo binário `silicio-helper`.
@@ -103,11 +134,28 @@ pub fn run() {
         return;
     }
 
+    // `silicio --bench` roda o benchmark (5 s single + 5 s multi) e imprime o resultado.
+    if std::env::args().any(|a| a == "--bench") {
+        let single = bench::benchmark(1, 5);
+        let multi = bench::benchmark(bench::available_threads(), 5);
+        let report = serde_json::json!({
+            "single": single,
+            "multi": multi,
+            "ratio": multi.score / single.score,
+        });
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report).expect("resultado é serializável")
+        );
+        return;
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(Mutex::new(LiveSampler::new()))
         .manage(Mutex::new(System::new()))
         .manage(Mutex::new(GpuSampler::new()))
+        .manage(Mutex::new(Stress::default()))
         .invoke_handler(tauri::generate_handler![
             cpu_info,
             cpu_live,
@@ -117,7 +165,11 @@ pub fn run() {
             spd_info,
             privileged_info,
             gpu_info,
-            gpu_live
+            gpu_live,
+            bench_run,
+            stress_start,
+            stress_stop,
+            stress_status
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Silício");

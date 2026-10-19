@@ -46,6 +46,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | SPD: fabricante, modelo, data, tabela de timings JEDEC | ✅ | ✅ DDR4 ² |
 | Perfis XMP / EXPO | ✅ | Só detecção |
 | Gráficos: clocks, uso, temperatura, consumo, VRAM | ✅ | ✅ |
+| Benchmark de CPU (single/multi thread) e teste de estresse com detecção de throttling | ✅ | ✅ |
 | Relatório em JSON (`--json`) | Só TXT | ✅ |
 | Versão nativa para Linux | ❌ | ✅ |
 | Tema claro e escuro | ❌ | ✅ |
@@ -61,8 +62,8 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | <img src="docs/screenshots/memoria.png" alt="Aba Memória"> | <img src="docs/screenshots/spd.png" alt="Aba SPD"> |
 | **Gráficos** | **Placa-mãe** |
 | <img src="docs/screenshots/graficos.png" alt="Aba Gráficos"> | <img src="docs/screenshots/placa-mae.png" alt="Aba Placa-mãe"> |
-| **Tema claro** | |
-| <img src="docs/screenshots/processador-claro.png" alt="Aba Processador no tema claro"> | |
+| **Benchmark** | **Tema claro** |
+| <img src="docs/screenshots/benchmark.png" alt="Aba Benchmark"> | <img src="docs/screenshots/processador-claro.png" alt="Aba Processador no tema claro"> |
 
 </details>
 
@@ -113,9 +114,10 @@ sudo modprobe spd5118    # DDR5
 
 ## Uso
 
-- **Ctrl+1** a **Ctrl+5** trocam de aba.
+- **Ctrl+1** a **Ctrl+6** trocam de aba.
 - **Copiar JSON**, na aba Processador, copia o relatório completo: útil para relatar bugs e pedir ajuda em fóruns.
 - No terminal, `silicio --json` imprime o relatório de todas as abas sem abrir janela (no Windows: `Silicio.exe --json > relatorio.json`).
+- `silicio --bench` roda o benchmark de CPU (5 s single-thread + 5 s multi-thread) e imprime as pontuações em JSON.
 
 ## Como funciona
 
@@ -172,13 +174,13 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 
 ## Roteiro
 
-- [x] Abas de processador, placa-mãe, memória, SPD (DDR4) e gráficos
+- [x] Abas de processador, placa-mãe, memória, SPD (DDR4), gráficos e benchmark
 - [x] Helper com root para MSR e SMBIOS no Linux
 - [ ] Decodificação de perfis XMP / EXPO e SPD DDR5
 - [ ] Leituras com privilégio no Windows com o driver PawnIO
 - [ ] Interface em inglês e traduções
 - [ ] Card de specs para compartilhar, módulo para Waybar, exportação Prometheus/MQTT, alertas de temperatura
-- [ ] Benchmark com comparação online
+- [ ] Comparação de benchmark online
 
 Ideias e votos são bem-vindos nas [issues](https://github.com/Anghievischi/silicio/issues).
 

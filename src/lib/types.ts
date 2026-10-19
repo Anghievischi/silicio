@@ -218,3 +218,16 @@ export interface GpuLive {
   fan_rpm: number | null;
   fan_percent: number | null;
 }
+
+export interface BenchResult {
+  threads: number;
+  seconds: number;
+  units: number;
+  score: number;
+}
+
+export interface StressStatus {
+  running: boolean;
+  seconds: number;
+  units: number;
+}

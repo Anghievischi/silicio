@@ -49,6 +49,7 @@ These links always point to the latest version. Older versions are on the [relea
 | SPD: manufacturer, part number, date, JEDEC timings table | ✅ | ✅ DDR4 ² |
 | XMP / EXPO profiles | ✅ | Detection only |
 | Graphics: clocks, load, temperature, power, VRAM | ✅ | ✅ |
+| CPU benchmark (single/multi thread) and stress test with throttling detection | ✅ | ✅ |
 | JSON report (`--json`) | TXT only | ✅ |
 | Native Linux version | ❌ | ✅ |
 | Light and dark theme | ❌ | ✅ |
@@ -64,8 +65,8 @@ These links always point to the latest version. Older versions are on the [relea
 | <img src="docs/screenshots/memoria.png" alt="Memory tab"> | <img src="docs/screenshots/spd.png" alt="SPD tab"> |
 | **Graphics** | **Motherboard** |
 | <img src="docs/screenshots/graficos.png" alt="Graphics tab"> | <img src="docs/screenshots/placa-mae.png" alt="Motherboard tab"> |
-| **Light theme** | |
-| <img src="docs/screenshots/processador-claro.png" alt="Processor tab, light theme"> | |
+| **Benchmark** | **Light theme** |
+| <img src="docs/screenshots/benchmark.png" alt="Benchmark tab"> | <img src="docs/screenshots/processador-claro.png" alt="Processor tab, light theme"> |
 
 </details>
 
@@ -116,9 +117,10 @@ sudo modprobe spd5118    # DDR5
 
 ## Usage
 
-- **Ctrl+1** to **Ctrl+5** switch between tabs.
+- **Ctrl+1** to **Ctrl+6** switch between tabs.
 - **Copy JSON** on the Processor tab copies the full report, handy for bug reports and forums.
 - From a terminal, `silicio --json` prints the report for every tab without opening a window (on Windows: `Silicio.exe --json > report.json`).
+- `silicio --bench` runs the CPU benchmark (5 s single-thread + 5 s multi-thread) and prints the scores as JSON.
 
 ## How it works
 
@@ -190,6 +192,7 @@ src-tauri/src/
   hw/pci.rs                   PCI devices and PCIe links
   hw/privileged.rs            MSR and raw SMBIOS (helper only)
   hw/wmi.rs                   WMI queries (Windows)
+  bench.rs                    CPU benchmark and stress test
   bin/silicio-helper.rs       root helper, started with pkexec
 src-tauri/tests/fixtures/     real SPD dump used by the tests
 packaging/                    icon and polkit policy
@@ -200,13 +203,13 @@ docs/                         CPU-Z analysis and screenshots
 
 ## Roadmap
 
-- [x] Processor, motherboard, memory, SPD (DDR4) and graphics tabs
+- [x] Processor, motherboard, memory, SPD (DDR4), graphics and benchmark tabs
 - [x] Root helper for MSR and SMBIOS on Linux
 - [ ] XMP / EXPO profile decoding and DDR5 SPD
 - [ ] Privileged readings on Windows with the PawnIO driver
 - [ ] English interface and translations
 - [ ] Shareable specs card, Waybar module, Prometheus/MQTT export, temperature alerts
-- [ ] Benchmark with online comparison
+- [ ] Online benchmark comparison
 
 Ideas and votes are welcome in [issues](https://github.com/Anghievischi/silicio/issues).
 
