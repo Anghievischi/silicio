@@ -3,13 +3,15 @@
 //! O WMI entrega inteiros de 64 bits como texto, então os valores são lidos
 //! como `Variant` e convertidos aqui em vez de deserializar structs fixas.
 
-use std::collections::HashMap;
 use ::wmi::{Variant, WMIConnection};
+use std::collections::HashMap;
 
 pub type Row = HashMap<String, Variant>;
 
 pub fn query(sql: &str) -> Vec<Row> {
-    WMIConnection::new().and_then(|con| con.raw_query(sql)).unwrap_or_default()
+    WMIConnection::new()
+        .and_then(|con| con.raw_query(sql))
+        .unwrap_or_default()
 }
 
 pub fn text(row: &Row, key: &str) -> Option<String> {

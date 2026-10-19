@@ -39,7 +39,8 @@ pub fn read() -> PrivilegedInfo {
     match std::fs::read("/sys/firmware/dmi/tables/DMI") {
         Ok(table) => {
             info.processor = smbios_processor(&table);
-            info.bios_vendor = smbios_strings(&table, 0).and_then(|(s, header)| string_at(&s, *header.get(4)?));
+            info.bios_vendor =
+                smbios_strings(&table, 0).and_then(|(s, header)| string_at(&s, *header.get(4)?));
         }
         Err(e) => info.errors.push(format!("SMBIOS: {e}")),
     }
@@ -89,8 +90,14 @@ fn string_at(strings: &[String], index: u8) -> Option<String> {
 
 fn smbios_processor(table: &[u8]) -> Option<SmbiosProcessor> {
     let (strings, f) = smbios_strings(table, 4)?;
-    let word = |at: usize| f.get(at..at + 2).map(|b| u16::from_le_bytes([b[0], b[1]])).filter(|v| *v != 0);
-    let voltage = f.get(0x11).and_then(|v| (v & 0x80 != 0).then(|| (v & 0x7F) as f32 / 10.0));
+    let word = |at: usize| {
+        f.get(at..at + 2)
+            .map(|b| u16::from_le_bytes([b[0], b[1]]))
+            .filter(|v| *v != 0)
+    };
+    let voltage = f
+        .get(0x11)
+        .and_then(|v| (v & 0x80 != 0).then(|| (v & 0x7F) as f32 / 10.0));
     Some(SmbiosProcessor {
         socket: f.get(0x04).and_then(|i| string_at(&strings, *i)),
         voltage,
@@ -138,15 +145,27 @@ mod msr {
             let _ = std::process::Command::new("modprobe").arg("msr").status();
         }
         let cpuid = CpuId::new();
-        let vendor = cpuid.get_vendor_info().map(|v| v.as_str().to_string()).unwrap_or_default();
-        let (family, model) = cpuid.get_feature_info().map(|f| (f.family_id(), f.model_id())).unwrap_or((0, 0));
-        let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+        let vendor = cpuid
+            .get_vendor_info()
+            .map(|v| v.as_str().to_string())
+            .unwrap_or_default();
+        let (family, model) = cpuid
+            .get_feature_info()
+            .map(|f| (f.family_id(), f.model_id()))
+            .unwrap_or((0, 0));
+        let threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
 
         let result = match vendor.as_str() {
             "GenuineIntel" => intel(info, threads),
-            "AuthenticAMD" if family == 0x17 || family == 0x19 => amd_zen(info, threads, family, model),
+            "AuthenticAMD" if family == 0x17 || family == 0x19 => {
+                amd_zen(info, threads, family, model)
+            }
             _ => {
-                info.errors.push(format!("MSR: processador {vendor} família {family:#x} ainda não suportado"));
+                info.errors.push(format!(
+                    "MSR: processador {vendor} família {family:#x} ainda não suportado"
+                ));
                 return;
             }
         };
@@ -175,7 +194,12 @@ mod msr {
     }
 
     /// Zen 1–4: FID/DID dão a frequência (FID ÷ DID × 200 MHz) e o VID a tensão.
-    fn amd_zen(info: &mut PrivilegedInfo, threads: usize, family: u8, model: u8) -> std::io::Result<()> {
+    fn amd_zen(
+        info: &mut PrivilegedInfo,
+        threads: usize,
+        family: u8,
+        model: u8,
+    ) -> std::io::Result<()> {
         let freq = |v: u64| {
             let (fid, did) = (bits(v, 0, 7) as f64, bits(v, 8, 13) as f64);
             (did > 0.0).then(|| fid / did * 200.0)

@@ -79,8 +79,15 @@ pub fn read() -> Vec<SpdModule> {
 }
 
 /// Velocidades padrão DDR4 e seus tCK em picossegundos.
-const DDR4_BINS: [(u32, u32); 7] =
-    [(3200, 625), (2933, 682), (2666, 750), (2400, 833), (2133, 938), (1866, 1071), (1600, 1250)];
+const DDR4_BINS: [(u32, u32); 7] = [
+    (3200, 625),
+    (2933, 682),
+    (2666, 750),
+    (2400, 833),
+    (2133, 938),
+    (1866, 1071),
+    (1600, 1250),
+];
 
 pub fn decode(address: &str, data: &[u8]) -> SpdModule {
     let slot = address
@@ -102,7 +109,13 @@ pub fn decode(address: &str, data: &[u8]) -> SpdModule {
         (None, None)
     };
 
-    SpdModule { address: address.to_string(), slot, kind: kind.to_string(), module_type, decoded }
+    SpdModule {
+        address: address.to_string(),
+        slot,
+        kind: kind.to_string(),
+        module_type,
+        decoded,
+    }
 }
 
 fn ddr4_module_type(byte: u8) -> Option<&'static str> {
@@ -132,7 +145,11 @@ fn crc16(data: &[u8]) -> u16 {
     for &byte in data {
         crc ^= (byte as u16) << 8;
         for _ in 0..8 {
-            crc = if crc & 0x8000 != 0 { (crc << 1) ^ 0x1021 } else { crc << 1 };
+            crc = if crc & 0x8000 != 0 {
+                (crc << 1) ^ 0x1021
+            } else {
+                crc << 1
+            };
         }
     }
     crc
@@ -143,7 +160,11 @@ fn manufacturer(continuation: u8, code: u8) -> Option<String> {
         return None;
     }
     let bank = (continuation & 0x7F) + 1;
-    Some(jedec_vendor(bank, code).map(String::from).unwrap_or_else(|| format!("JEDEC banco {bank}, 0x{code:02X}")))
+    Some(
+        jedec_vendor(bank, code)
+            .map(String::from)
+            .unwrap_or_else(|| format!("JEDEC banco {bank}, 0x{code:02X}")),
+    )
 }
 
 fn bcd(b: u8) -> u8 {
@@ -170,7 +191,11 @@ fn decode_ddr4(d: &[u8]) -> Ddr4 {
         .collect();
 
     let max_speed_mts = (2_000_000 / tck) as u32;
-    let max_speed_mts = DDR4_BINS.iter().map(|(s, _)| *s).find(|s| s.abs_diff(max_speed_mts) < 15).unwrap_or(max_speed_mts);
+    let max_speed_mts = DDR4_BINS
+        .iter()
+        .map(|(s, _)| *s)
+        .find(|s| s.abs_diff(max_speed_mts) < 15)
+        .unwrap_or(max_speed_mts);
 
     let table = DDR4_BINS
         .iter()
@@ -202,7 +227,8 @@ fn decode_ddr4(d: &[u8]) -> Ddr4 {
     let device_width = 4u8 << (d[12] & 0x07);
     let ranks = ((d[12] >> 3) & 0x07) + 1;
     let bus_width = 8u8 << (d[13] & 0x07);
-    let size_mb = (die_density_gbit * 1024.0 / 8.0) as u64 * (bus_width / device_width) as u64 * ranks as u64;
+    let size_mb =
+        (die_density_gbit * 1024.0 / 8.0) as u64 * (bus_width / device_width) as u64 * ranks as u64;
 
     let part = String::from_utf8_lossy(&d[329..349]).trim().to_string();
     let xmp = (d[384] == 0x0C && d[385] == 0x4A).then(|| Xmp {
@@ -247,7 +273,10 @@ mod platform {
     use super::SpdModule;
     use std::fs;
 
-    const DRIVERS: [&str; 2] = ["/sys/bus/i2c/drivers/ee1004", "/sys/bus/i2c/drivers/spd5118"];
+    const DRIVERS: [&str; 2] = [
+        "/sys/bus/i2c/drivers/ee1004",
+        "/sys/bus/i2c/drivers/spd5118",
+    ];
 
     pub fn read() -> Vec<SpdModule> {
         let mut modules: Vec<SpdModule> = DRIVERS
@@ -303,7 +332,10 @@ mod tests {
         assert_eq!(d.module_manufacturer.as_deref(), Some("Smart Modular"));
         assert_eq!(d.part_number.as_deref(), Some("SMS4WEC8C1K0446FCG"));
         assert_eq!(d.manufactured, Some((2023, 25)));
-        assert_eq!(d.cas_supported, vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24]);
+        assert_eq!(
+            d.cas_supported,
+            vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24]
+        );
         assert!(d.xmp.is_none());
     }
 

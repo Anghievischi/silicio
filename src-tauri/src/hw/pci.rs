@@ -25,7 +25,11 @@ pub struct PcieLink {
     pub max_width: Option<u8>,
 }
 
-const PCI_IDS: [&str; 3] = ["/usr/share/hwdata/pci.ids", "/usr/share/misc/pci.ids", "/usr/share/pci.ids"];
+const PCI_IDS: [&str; 3] = [
+    "/usr/share/hwdata/pci.ids",
+    "/usr/share/misc/pci.ids",
+    "/usr/share/pci.ids",
+];
 
 pub fn list() -> Vec<PciDevice> {
     let Ok(entries) = fs::read_dir("/sys/bus/pci/devices") else {
@@ -38,7 +42,10 @@ pub fn list() -> Vec<PciDevice> {
     devices.sort_by(|a, b| a.address.cmp(&b.address));
 
     let wanted: Vec<(u16, u16)> = devices.iter().map(|d| (d.vendor_id, d.device_id)).collect();
-    let names = PCI_IDS.iter().find_map(|p| fs::read_to_string(p).ok()).map(|db| lookup_names(&db, &wanted));
+    let names = PCI_IDS
+        .iter()
+        .find_map(|p| fs::read_to_string(p).ok())
+        .map(|db| lookup_names(&db, &wanted));
     if let Some((vendors, products)) = names {
         for d in &mut devices {
             d.vendor = vendors.get(&d.vendor_id).cloned();
@@ -66,7 +73,11 @@ fn read_device(path: &Path) -> Option<PciDevice> {
 }
 
 fn read_link(path: &Path) -> Option<PcieLink> {
-    let text = |file: &str| fs::read_to_string(path.join(file)).ok().map(|s| s.trim().to_string());
+    let text = |file: &str| {
+        fs::read_to_string(path.join(file))
+            .ok()
+            .map(|s| s.trim().to_string())
+    };
     let width = |file: &str| text(file).and_then(|w| w.parse().ok()).filter(|w| *w > 0);
     let link = PcieLink {
         current_gen: text("current_link_speed").and_then(|s| pcie_gen(&s)),
@@ -113,9 +124,10 @@ fn lookup_names(db: &str, wanted: &[(u16, u16)]) -> Names {
             }
             let Some(vendor) = current else { continue };
             if let Some((id, name)) = split_entry(rest)
-                && wanted.contains(&(vendor, id)) {
-                    products.insert((vendor, id), name.to_string());
-                }
+                && wanted.contains(&(vendor, id))
+            {
+                products.insert((vendor, id), name.to_string());
+            }
         } else if let Some((id, name)) = split_entry(line) {
             current = wanted.iter().any(|(v, _)| *v == id).then_some(id);
             if current.is_some() {
@@ -135,7 +147,10 @@ fn split_entry(line: &str) -> Option<(u16, &str)> {
 fn short_vendor(name: &str) -> String {
     match (name.rfind('['), name.rfind(']')) {
         (Some(a), Some(b)) if b > a + 1 => name[a + 1..b].to_string(),
-        _ => name.trim_end_matches(", Inc.").trim_end_matches(" Corporation").to_string(),
+        _ => name
+            .trim_end_matches(", Inc.")
+            .trim_end_matches(" Corporation")
+            .to_string(),
     }
 }
 

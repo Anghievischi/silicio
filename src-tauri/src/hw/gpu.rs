@@ -49,7 +49,9 @@ pub struct GpuSampler {
 
 impl GpuSampler {
     pub fn new() -> Self {
-        Self { nvml: Nvml::init().ok() }
+        Self {
+            nvml: Nvml::init().ok(),
+        }
     }
 
     pub fn info(&self) -> Vec<Gpu> {
@@ -71,7 +73,13 @@ impl GpuSampler {
 
 /// Compara endereços PCI ignorando o domínio e a caixa ("00000000:01:00.0" = "0000:01:00.0").
 fn same_pci(a: &str, b: &str) -> bool {
-    let tail = |s: &str| s.rsplitn(3, ':').take(2).collect::<Vec<_>>().join(":").to_lowercase();
+    let tail = |s: &str| {
+        s.rsplitn(3, ':')
+            .take(2)
+            .collect::<Vec<_>>()
+            .join(":")
+            .to_lowercase()
+    };
     tail(a) == tail(b)
 }
 
@@ -81,21 +89,32 @@ mod nvidia {
     pub fn merge_info(nvml: &Nvml, gpus: &mut Vec<Gpu>) {
         let driver_version = nvml.sys_driver_version().ok();
         for i in 0..nvml.device_count().unwrap_or(0) {
-            let Ok(dev) = nvml.device_by_index(i) else { continue };
+            let Ok(dev) = nvml.device_by_index(i) else {
+                continue;
+            };
             let Ok(pci) = dev.pci_info() else { continue };
             // No Windows o WMI identifica a placa pelo PNPDeviceID; nesse caso casamos pelo fabricante.
-            let found = gpus.iter().position(|g| same_pci(&g.id, &pci.bus_id)).or_else(|| {
-                gpus.iter().position(|g| {
-                    !g.id.contains(':') && g.vendor.as_deref().is_some_and(|v| v.to_uppercase().contains("NVIDIA"))
-                })
-            });
+            let found = gpus
+                .iter()
+                .position(|g| same_pci(&g.id, &pci.bus_id))
+                .or_else(|| {
+                    gpus.iter().position(|g| {
+                        !g.id.contains(':')
+                            && g.vendor
+                                .as_deref()
+                                .is_some_and(|v| v.to_uppercase().contains("NVIDIA"))
+                    })
+                });
             let gpu = match found {
                 Some(idx) => {
                     gpus[idx].id = pci.bus_id.to_lowercase();
                     &mut gpus[idx]
                 }
                 None => {
-                    gpus.push(Gpu { id: pci.bus_id.to_lowercase(), ..Default::default() });
+                    gpus.push(Gpu {
+                        id: pci.bus_id.to_lowercase(),
+                        ..Default::default()
+                    });
                     gpus.last_mut().expect("acabou de ser inserido")
                 }
             };
@@ -120,7 +139,9 @@ mod nvidia {
 
     pub fn merge_live(nvml: &Nvml, samples: &mut Vec<GpuLive>) {
         for i in 0..nvml.device_count().unwrap_or(0) {
-            let Ok(dev) = nvml.device_by_index(i) else { continue };
+            let Ok(dev) = nvml.device_by_index(i) else {
+                continue;
+            };
             let Ok(pci) = dev.pci_info() else { continue };
             let sample = GpuLive {
                 id: pci.bus_id.to_lowercase(),
@@ -128,13 +149,21 @@ mod nvidia {
                 memory_mhz: dev.clock_info(Clock::Memory).ok(),
                 usage: dev.utilization_rates().ok().map(|u| u.gpu),
                 vram_used_bytes: dev.memory_info().ok().map(|m| m.total - m.free),
-                temperature_c: dev.temperature(TemperatureSensor::Gpu).ok().map(|t| t as f32),
+                temperature_c: dev
+                    .temperature(TemperatureSensor::Gpu)
+                    .ok()
+                    .map(|t| t as f32),
                 power_w: dev.power_usage().ok().map(|mw| mw as f32 / 1000.0),
                 fan_percent: dev.fan_speed(0).ok(),
                 ..Default::default()
             };
             match samples.iter_mut().find(|s| same_pci(&s.id, &sample.id)) {
-                Some(existing) => *existing = GpuLive { id: existing.id.clone(), ..sample },
+                Some(existing) => {
+                    *existing = GpuLive {
+                        id: existing.id.clone(),
+                        ..sample
+                    }
+                }
                 None => samples.push(sample),
             }
         }
@@ -156,12 +185,15 @@ mod platform {
     }
 
     fn cards() -> Vec<Card> {
-        let Ok(entries) = fs::read_dir("/sys/class/drm") else { return Vec::new() };
+        let Ok(entries) = fs::read_dir("/sys/class/drm") else {
+            return Vec::new();
+        };
         let mut cards: Vec<Card> = entries
             .flatten()
             .filter(|e| {
                 let name = e.file_name().to_string_lossy().into_owned();
-                name.strip_prefix("card").is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+                name.strip_prefix("card")
+                    .is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
             })
             .filter_map(|e| {
                 let device = fs::canonicalize(e.path().join("device")).ok()?;
@@ -169,7 +201,12 @@ mod platform {
                 let driver = fs::read_link(device.join("driver"))
                     .ok()
                     .and_then(|d| d.file_name().map(|n| n.to_string_lossy().into_owned()));
-                Some(Card { card: e.path(), device, address, driver })
+                Some(Card {
+                    card: e.path(),
+                    device,
+                    address,
+                    driver,
+                })
             })
             .collect();
         cards.sort_by(|a, b| a.address.cmp(&b.address));
@@ -178,7 +215,10 @@ mod platform {
     }
 
     fn text(path: &Path) -> Option<String> {
-        fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+        fs::read_to_string(path)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
     }
 
     fn num<T: std::str::FromStr>(path: &Path) -> Option<T> {
@@ -186,16 +226,29 @@ mod platform {
     }
 
     fn hwmon(device: &Path) -> Option<PathBuf> {
-        fs::read_dir(device.join("hwmon")).ok()?.flatten().next().map(|e| e.path())
+        fs::read_dir(device.join("hwmon"))
+            .ok()?
+            .flatten()
+            .next()
+            .map(|e| e.path())
     }
 
     /// Lê os níveis de `pp_dpm_*` ("1: 400Mhz *") e devolve (atual, máximo) em MHz.
     fn dpm_levels(path: &Path) -> (Option<u32>, Option<u32>) {
-        let Some(table) = text(path) else { return (None, None) };
-        let mhz = |line: &str| -> Option<u32> {
-            line.split_whitespace().nth(1)?.trim_end_matches(|c: char| !c.is_ascii_digit()).parse().ok()
+        let Some(table) = text(path) else {
+            return (None, None);
         };
-        let current = table.lines().find(|l| l.trim_end().ends_with('*')).and_then(mhz);
+        let mhz = |line: &str| -> Option<u32> {
+            line.split_whitespace()
+                .nth(1)?
+                .trim_end_matches(|c: char| !c.is_ascii_digit())
+                .parse()
+                .ok()
+        };
+        let current = table
+            .lines()
+            .find(|l| l.trim_end().ends_with('*'))
+            .and_then(mhz);
         let max = table.lines().filter_map(mhz).max();
         (current, max)
     }
@@ -212,8 +265,9 @@ mod platform {
                     vendor: pci.and_then(|p| p.vendor.clone()),
                     driver: c.driver.clone(),
                     // Drivers que vêm no kernel não têm versão própria; vale a do kernel.
-                    driver_version: text(&c.device.join("driver/module/version"))
-                        .or_else(|| sysinfo::System::kernel_version().map(|k| format!("Linux {k}"))),
+                    driver_version: text(&c.device.join("driver/module/version")).or_else(|| {
+                        sysinfo::System::kernel_version().map(|k| format!("Linux {k}"))
+                    }),
                     link: pci.and_then(|p| p.link.clone()),
                     ..Default::default()
                 };
@@ -229,7 +283,10 @@ mod platform {
                     }
                     Some("i915") | Some("xe") => {
                         gpu.max_core_mhz = num(&c.card.join("gt_max_freq_mhz"));
-                        let arc = gpu.name.as_deref().is_some_and(|n| n.contains("Arc") || n.contains("DG2"));
+                        let arc = gpu
+                            .name
+                            .as_deref()
+                            .is_some_and(|n| n.contains("Arc") || n.contains("DG2"));
                         gpu.integrated = Some(!arc);
                     }
                     Some("nvidia") | Some("nouveau") => gpu.integrated = Some(false),
@@ -244,12 +301,17 @@ mod platform {
         cards()
             .into_iter()
             .map(|c| {
-                let mut s = GpuLive { id: c.address.clone(), ..Default::default() };
+                let mut s = GpuLive {
+                    id: c.address.clone(),
+                    ..Default::default()
+                };
                 let mon = hwmon(&c.device);
                 let mon_num = |file: &str| mon.as_ref().and_then(|m| num::<u64>(&m.join(file)));
 
                 s.temperature_c = mon_num("temp1_input").map(|m| m as f32 / 1000.0);
-                s.power_w = mon_num("power1_average").or_else(|| mon_num("power1_input")).map(|uw| uw as f32 / 1e6);
+                s.power_w = mon_num("power1_average")
+                    .or_else(|| mon_num("power1_input"))
+                    .map(|uw| uw as f32 / 1e6);
                 s.fan_rpm = mon_num("fan1_input").map(|r| r as u32).filter(|r| *r > 0);
 
                 match c.driver.as_deref() {
@@ -262,7 +324,10 @@ mod platform {
                         s.memory_mhz = dpm_levels(&c.device.join("pp_dpm_mclk")).0;
                         s.voltage_mv = mon_num("in0_input").map(|v| v as u32);
                     }
-                    Some("i915") => s.core_mhz = num(&c.card.join("gt_act_freq_mhz")).or_else(|| num(&c.card.join("gt_cur_freq_mhz"))),
+                    Some("i915") => {
+                        s.core_mhz = num(&c.card.join("gt_act_freq_mhz"))
+                            .or_else(|| num(&c.card.join("gt_cur_freq_mhz")))
+                    }
                     Some("xe") => s.core_mhz = num(&c.device.join("tile0/gt0/freq0/act_freq")),
                     _ => {}
                 }

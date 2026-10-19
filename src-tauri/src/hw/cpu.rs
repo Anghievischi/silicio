@@ -84,8 +84,16 @@ pub fn read_static() -> CpuInfo {
     );
     let threads = sys.cpus().len().max(1);
     let cores = System::physical_core_count().unwrap_or(threads);
-    let brand_fallback = sys.cpus().first().map(|c| c.brand().trim().to_string()).unwrap_or_default();
-    let vendor_fallback = sys.cpus().first().map(|c| c.vendor_id().to_string()).unwrap_or_default();
+    let brand_fallback = sys
+        .cpus()
+        .first()
+        .map(|c| c.brand().trim().to_string())
+        .unwrap_or_default();
+    let vendor_fallback = sys
+        .cpus()
+        .first()
+        .map(|c| c.vendor_id().to_string())
+        .unwrap_or_default();
 
     let mut info = CpuInfo {
         brand: brand_fallback,
@@ -130,7 +138,9 @@ pub struct LiveSampler {
 impl LiveSampler {
     pub fn new() -> Self {
         Self {
-            sys: System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::everything())),
+            sys: System::new_with_specifics(
+                RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()),
+            ),
             components: Components::new_with_refreshed_list(),
         }
     }
@@ -143,7 +153,10 @@ impl LiveSampler {
             .sys
             .cpus()
             .iter()
-            .map(|c| ThreadLive { mhz: c.frequency(), usage: c.cpu_usage() })
+            .map(|c| ThreadLive {
+                mhz: c.frequency(),
+                usage: c.cpu_usage(),
+            })
             .collect();
         let n = threads.len().max(1) as u64;
 
@@ -201,7 +214,10 @@ mod x86 {
         if let Some(params) = cpuid.get_cache_parameters() {
             info.caches = params
                 .map(|c| {
-                    let size = c.associativity() * c.physical_line_partitions() * c.coherency_line_size() * c.sets();
+                    let size = c.associativity()
+                        * c.physical_line_partitions()
+                        * c.coherency_line_size()
+                        * c.sets();
                     let shared = c.max_cores_for_cache().max(1);
                     Cache {
                         level: c.level(),
@@ -266,11 +282,17 @@ mod x86 {
         add!(x, security, has_execute_disable => "NX");
         add!(e, security, has_smep => "SMEP", has_smap => "SMAP", has_sgx => "SGX", has_cet_ss => "CET");
 
-        [("SIMD", simd), ("Criptografia", crypto), ("Virtualização", virt), ("Bits e inteiros", bits), ("Segurança", security)]
-            .into_iter()
-            .filter(|(_, items)| !items.is_empty())
-            .map(|(name, items)| InstructionGroup { name, items })
-            .collect()
+        [
+            ("SIMD", simd),
+            ("Criptografia", crypto),
+            ("Virtualização", virt),
+            ("Bits e inteiros", bits),
+            ("Segurança", security),
+        ]
+        .into_iter()
+        .filter(|(_, items)| !items.is_empty())
+        .map(|(name, items)| InstructionGroup { name, items })
+        .collect()
     }
 }
 
@@ -281,7 +303,10 @@ mod platform {
     use std::fs;
 
     fn read(path: &str) -> Option<String> {
-        fs::read_to_string(path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+        fs::read_to_string(path)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
     }
 
     fn khz_to_mhz(path: &str) -> Option<u64> {
@@ -319,7 +344,10 @@ mod platform {
                 _ => return super::sequential_topology(threads, cores),
             }
         }
-        map.into_values().enumerate().map(|(id, threads)| Core { id, threads }).collect()
+        map.into_values()
+            .enumerate()
+            .map(|(id, threads)| Core { id, threads })
+            .collect()
     }
 }
 
@@ -347,6 +375,9 @@ fn sequential_topology(threads: usize, cores: usize) -> Vec<Core> {
         .collect::<Vec<_>>()
         .chunks(per_core)
         .enumerate()
-        .map(|(id, t)| Core { id, threads: t.to_vec() })
+        .map(|(id, t)| Core {
+            id,
+            threads: t.to_vec(),
+        })
         .collect()
 }

@@ -15,7 +15,11 @@ pub struct Codename {
 }
 
 const fn c(name: &'static str, microarch: &'static str, process: &'static str) -> Codename {
-    Codename { name, microarch, process }
+    Codename {
+        name,
+        microarch,
+        process,
+    }
 }
 
 pub fn lookup(vendor: &str, family: u32, model: u32) -> Option<Codename> {

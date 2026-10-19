@@ -44,7 +44,9 @@ pub struct MemoryLive {
 }
 
 pub fn read() -> MemoryInfo {
-    let sys = System::new_with_specifics(RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()));
+    let sys = System::new_with_specifics(
+        RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()),
+    );
     let (slots, max_capacity_bytes) = platform::slots();
 
     let populated: Vec<&Slot> = slots.iter().filter(|s| s.size_bytes > 0).collect();
@@ -59,7 +61,10 @@ pub fn read() -> MemoryInfo {
         total_bytes: sys.total_memory(),
         max_capacity_bytes,
         kind: populated.iter().find_map(|s| s.kind.clone()),
-        speed_mts: populated.iter().filter_map(|s| s.configured_mts.or(s.speed_mts)).min(),
+        speed_mts: populated
+            .iter()
+            .filter_map(|s| s.configured_mts.or(s.speed_mts))
+            .min(),
         channels,
         slots,
     }
@@ -79,11 +84,14 @@ pub fn read_live(sys: &mut System) -> MemoryLive {
 /// "P0 CHANNEL A" -> "A". Placas que não informam canal contam como um só.
 /// No Windows o canal costuma vir no DeviceLocator ("ChannelA-DIMM0").
 fn channel_of(slot: &Slot) -> Option<&str> {
-    [slot.bank.as_deref(), slot.locator.as_deref()].into_iter().flatten().find_map(|text| {
-        let idx = text.to_uppercase().find("CHANNEL")?;
-        let rest = text.get(idx + "CHANNEL".len()..)?.trim();
-        rest.split(['-', ' ', '_']).next().filter(|c| !c.is_empty())
-    })
+    [slot.bank.as_deref(), slot.locator.as_deref()]
+        .into_iter()
+        .flatten()
+        .find_map(|text| {
+            let idx = text.to_uppercase().find("CHANNEL")?;
+            let rest = text.get(idx + "CHANNEL".len()..)?.trim();
+            rest.split(['-', ' ', '_']).next().filter(|c| !c.is_empty())
+        })
 }
 
 /// Fabricantes de módulo pelo código JEDEC JEP106 (banco, código com paridade).
@@ -107,14 +115,23 @@ pub(super) fn jedec_vendor(bank: u8, code: u8) -> Option<&'static str> {
 fn decode_manufacturer_id(raw: &str) -> Option<&'static str> {
     let (bank, hex) = raw.split_once(',')?;
     let bank: u8 = bank.trim().strip_prefix("Bank")?.trim().parse().ok()?;
-    let code = u8::from_str_radix(hex.trim().strip_prefix("Hex")?.trim().trim_start_matches("0x"), 16).ok()?;
+    let code = u8::from_str_radix(
+        hex.trim()
+            .strip_prefix("Hex")?
+            .trim()
+            .trim_start_matches("0x"),
+        16,
+    )
+    .ok()?;
     jedec_vendor(bank, code)
 }
 
 fn useful(value: &str) -> Option<String> {
     let v = value.trim();
     let lower = v.to_lowercase();
-    let junk = v.is_empty() || ["unknown", "not specified", "none"].contains(&lower.as_str()) || lower.starts_with("undefined");
+    let junk = v.is_empty()
+        || ["unknown", "not specified", "none"].contains(&lower.as_str())
+        || lower.starts_with("undefined");
     (!junk).then(|| v.to_string())
 }
 
@@ -125,14 +142,17 @@ fn parse_udev(text: &str) -> (Vec<Slot>, Option<u64>) {
 
     for line in text.lines() {
         let line = line.strip_prefix("E:").unwrap_or(line);
-        let Some((key, value)) = line.split_once('=') else { continue };
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
         if key == "MEMORY_ARRAY_MAX_CAPACITY" {
             max_capacity = value.parse().ok();
         } else if let Some(rest) = key.strip_prefix("MEMORY_DEVICE_")
             && let Some((idx, field)) = rest.split_once('_')
-                && let Ok(idx) = idx.parse() {
-                    fields.entry(idx).or_default().insert(field, value);
-                }
+            && let Ok(idx) = idx.parse()
+        {
+            fields.entry(idx).or_default().insert(field, value);
+        }
     }
 
     let slots = fields
@@ -151,8 +171,11 @@ fn parse_udev(text: &str) -> (Vec<Slot>, Option<u64>) {
                 form_factor: get("FORM_FACTOR"),
                 speed_mts: num(&f, "SPEED_MTS"),
                 configured_mts: num(&f, "CONFIGURED_SPEED_MTS"),
-                manufacturer: get("MANUFACTURER")
-                    .or_else(|| f.get("MODULE_MANUFACTURER_ID").and_then(|id| decode_manufacturer_id(id)).map(String::from)),
+                manufacturer: get("MANUFACTURER").or_else(|| {
+                    f.get("MODULE_MANUFACTURER_ID")
+                        .and_then(|id| decode_manufacturer_id(id))
+                        .map(String::from)
+                }),
                 part_number: get("PART_NUMBER"),
                 rank: num(&f, "RANK"),
                 data_width: num(&f, "DATA_WIDTH"),
@@ -175,7 +198,7 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use super::{useful, Slot};
+    use super::{Slot, useful};
     use crate::hw::wmi;
 
     /// Tipos de memória do SMBIOS (tabela 7.18.2).
@@ -210,14 +233,22 @@ mod platform {
                 locator: wmi::text(r, "DeviceLocator").and_then(|v| useful(&v)),
                 bank: wmi::text(r, "BankLabel").and_then(|v| useful(&v)),
                 size_bytes: wmi::number(r, "Capacity").unwrap_or(0),
-                kind: wmi::number(r, "SMBIOSMemoryType").and_then(memory_type).map(String::from),
+                kind: wmi::number(r, "SMBIOSMemoryType")
+                    .and_then(memory_type)
+                    .map(String::from),
                 detail: None,
-                form_factor: wmi::number(r, "FormFactor").and_then(form_factor).map(String::from),
+                form_factor: wmi::number(r, "FormFactor")
+                    .and_then(form_factor)
+                    .map(String::from),
                 speed_mts: wmi::number(r, "Speed").map(|v| v as u32).filter(|v| *v > 0),
-                configured_mts: wmi::number(r, "ConfiguredClockSpeed").map(|v| v as u32).filter(|v| *v > 0),
+                configured_mts: wmi::number(r, "ConfiguredClockSpeed")
+                    .map(|v| v as u32)
+                    .filter(|v| *v > 0),
                 manufacturer: wmi::text(r, "Manufacturer").and_then(|v| useful(&v)),
                 part_number: wmi::text(r, "PartNumber").and_then(|v| useful(&v)),
-                rank: wmi::number(r, "Attributes").map(|v| v as u8).filter(|v| *v > 0),
+                rank: wmi::number(r, "Attributes")
+                    .map(|v| v as u8)
+                    .filter(|v| *v > 0),
                 data_width: wmi::number(r, "DataWidth").map(|v| v as u16),
             })
             .collect();

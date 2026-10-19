@@ -62,14 +62,24 @@ pub fn read() -> BoardInfo {
         // O primeiro host bridge (00:00.0) identifica o chipset / root complex.
         chipset: devices.iter().find(|d| d.class == HOST_BRIDGE).cloned(),
         southbridge: devices.iter().find(|d| d.class == ISA_BRIDGE).cloned(),
-        graphics: devices.iter().filter(|d| d.class >> 8 == DISPLAY).cloned().collect(),
+        graphics: devices
+            .iter()
+            .filter(|d| d.class >> 8 == DISPLAY)
+            .cloned()
+            .collect(),
     }
 }
 
 /// Descarta os valores de preenchimento que os fabricantes deixam no SMBIOS.
 fn clean(value: Option<String>) -> Option<String> {
-    const PLACEHOLDERS: [&str; 6] =
-        ["to be filled by o.e.m.", "default string", "not applicable", "not specified", "system product name", "none"];
+    const PLACEHOLDERS: [&str; 6] = [
+        "to be filled by o.e.m.",
+        "default string",
+        "not applicable",
+        "not specified",
+        "system product name",
+        "none",
+    ];
     value
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty() && !PLACEHOLDERS.contains(&v.to_lowercase().as_str()))
@@ -95,7 +105,7 @@ fn chassis_name(kind: u8) -> &'static str {
 
 #[cfg(target_os = "linux")]
 mod platform {
-    use super::{clean, Bios};
+    use super::{Bios, clean};
     use std::fs;
 
     fn dmi(file: &str) -> Option<String> {
@@ -118,7 +128,7 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use super::{clean, Bios};
+    use super::{Bios, clean};
     use crate::hw::wmi;
 
     /// Data CIM ("20221213000000.000000+000") no formato SMBIOS (MM/DD/AAAA).
@@ -130,8 +140,11 @@ mod platform {
     }
 
     pub fn bios() -> Bios {
-        let rows = wmi::query("SELECT Manufacturer, SMBIOSBIOSVersion, ReleaseDate FROM Win32_BIOS");
-        let Some(row) = rows.first() else { return Bios::default() };
+        let rows =
+            wmi::query("SELECT Manufacturer, SMBIOSBIOSVersion, ReleaseDate FROM Win32_BIOS");
+        let Some(row) = rows.first() else {
+            return Bios::default();
+        };
         Bios {
             vendor: clean(wmi::text(row, "Manufacturer")),
             version: clean(wmi::text(row, "SMBIOSBIOSVersion")),

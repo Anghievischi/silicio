@@ -3,5 +3,8 @@
 
 fn main() {
     let info = silicio_lib::privileged_read();
-    println!("{}", serde_json::to_string(&info).expect("PrivilegedInfo é serializável"));
+    println!(
+        "{}",
+        serde_json::to_string(&info).expect("PrivilegedInfo é serializável")
+    );
 }
