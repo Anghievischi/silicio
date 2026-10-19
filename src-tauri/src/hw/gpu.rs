@@ -428,8 +428,11 @@ mod platform {
             let Ok(desc) = (unsafe { adapter.GetDesc1() }) else {
                 continue;
             };
-            if desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32 != 0 {
-                continue; // "Microsoft Basic Render Driver"
+            // O "Microsoft Basic Render Driver" (1414:008C) renderiza por software,
+            // mas nem sempre vem marcado com a flag de software.
+            let basic_render = desc.VendorId == 0x1414 && desc.DeviceId == 0x008C;
+            if desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32 != 0 || basic_render {
+                continue;
             }
             let ids = format!("VEN_{:04X}&DEV_{:04X}", desc.VendorId, desc.DeviceId);
             let matches = |id: &str| id.to_uppercase().contains(&ids);
