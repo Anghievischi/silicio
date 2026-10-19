@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+PackageIdentifier: Anghievischi.Silicio
+PackageVersion: 0.1.2
+PackageLocale: en-US
+Publisher: Diógenes A. Anghievischi
+PublisherUrl: https://github.com/Anghievischi
+PackageName: Silício
+PackageUrl: https://github.com/Anghievischi/silicio
+License: MIT
+LicenseUrl: https://github.com/Anghievischi/silicio/blob/main/LICENSE
+ShortDescription: Modern open-source CPU-Z alternative: CPU, motherboard, memory, SPD and GPU with live data.
+Tags:
+- cpu
+- cpu-z
+- hardware
+- system-information
+- benchmark
+ReleaseNotesUrl: https://github.com/Anghievischi/silicio/releases/tag/v0.1.2
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0

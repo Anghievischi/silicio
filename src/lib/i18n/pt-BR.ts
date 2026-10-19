@@ -27,6 +27,14 @@ export const ptBR = {
     pcieCurrent: "Link atual",
     pcieMax: "Máximo",
   },
+  update: {
+    available: (version: string) => `Versão ${version} disponível`,
+    install: "Atualizar agora",
+    later: "Depois",
+    installing: (pct: number) => `Baixando… ${pct}%`,
+    failed: "Não foi possível atualizar automaticamente.",
+    download: "Baixar manualmente",
+  },
   cpu: {
     error: "Não foi possível ler o processador",
     loading: "Lendo o processador…",

@@ -59,7 +59,15 @@ Maintainers publish a release by pushing a tag:
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-The [release workflow](.github/workflows/release.yml) builds the Windows and Linux packages and attaches them to the release. Notable changes go to [CHANGELOG.md](CHANGELOG.md).
+The [release workflow](.github/workflows/release.yml) builds the Windows and Linux packages, signs them for the auto-updater (secret `TAURI_SIGNING_PRIVATE_KEY`) and attaches them, plus `latest.json`, to the release. Notable changes go to [CHANGELOG.md](CHANGELOG.md).
+
+After the release is published, update the package manifests:
+
+```bash
+python3 packaging/scripts/update-manifests.py 0.2.0
+```
+
+This rewrites the Scoop manifest (`bucket/`), the winget manifests (`packaging/winget/`, submitted with `wingetcreate submit`) and the AUR `PKGBUILD` (`packaging/aur/`, pushed to the `silicio-bin` AUR repository).
 
 ## Code of Conduct
 

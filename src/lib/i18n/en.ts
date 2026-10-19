@@ -26,6 +26,14 @@ export const en: Messages = {
     pcieCurrent: "Current link",
     pcieMax: "Maximum",
   },
+  update: {
+    available: (version) => `Version ${version} available`,
+    install: "Update now",
+    later: "Later",
+    installing: (pct) => `Downloading… ${pct}%`,
+    failed: "Could not update automatically.",
+    download: "Download manually",
+  },
   cpu: {
     error: "Could not read the processor",
     loading: "Reading the processor…",

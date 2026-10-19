@@ -77,6 +77,13 @@ Baixe o **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/l
 > [!IMPORTANT]
 > Os arquivos ainda não têm assinatura digital, então o Windows SmartScreen pode mostrar "O Windows protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**.
 
+**Com o [Scoop](https://scoop.sh):**
+
+```powershell
+scoop bucket add silicio https://github.com/Anghievischi/silicio
+scoop install silicio
+```
+
 O Windows 10 e 11 já trazem o WebView2 que o app usa. Se faltar, o instalador baixa sozinho.
 
 Se o app não abrir, procure o arquivo `silicio-crash.log` na pasta temporária (digite `%TEMP%` na barra de endereço do Explorer) e anexe num [relato de bug](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
@@ -120,6 +127,7 @@ sudo modprobe spd5118    # DDR5
 - **Ctrl+1** a **Ctrl+6** trocam de aba.
 - O idioma segue o do sistema; troque no rodapé da barra lateral.
 - **Copiar JSON**, na aba Processador, copia o relatório completo: útil para relatar bugs e pedir ajuda em fóruns.
+- Quando sai uma versão nova, o Silício oferece se atualizar sozinho (instalador do Windows, `.deb`, `.rpm` e AppImage). As atualizações são assinadas e conferidas antes de instalar.
 - No terminal, `silicio --json` imprime o relatório de todas as abas sem abrir janela (no Windows: `Silicio.exe --json > relatorio.json`).
 - `silicio --bench` roda o benchmark de CPU (5 s single-thread + 5 s multi-thread) e imprime as pontuações em JSON.
 

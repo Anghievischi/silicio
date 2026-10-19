@@ -77,6 +77,13 @@ Download **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/
 > [!IMPORTANT]
 > Releases are not code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Click **More info** → **Run anyway**.
 
+**With [Scoop](https://scoop.sh):**
+
+```powershell
+scoop bucket add silicio https://github.com/Anghievischi/silicio
+scoop install silicio
+```
+
 Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
 
 If the app does not open, look for `silicio-crash.log` in your temp folder (type `%TEMP%` in the Explorer address bar) and attach it to a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
@@ -120,6 +127,7 @@ sudo modprobe spd5118    # DDR5
 - **Ctrl+1** to **Ctrl+6** switch between tabs.
 - The language follows your system; change it at the bottom of the sidebar.
 - **Copy JSON** on the Processor tab copies the full report, handy for bug reports and forums.
+- When a new version is out, Silício offers to update itself (Windows installer, `.deb`, `.rpm` and AppImage). Updates are signed and checked before installing.
 - From a terminal, `silicio --json` prints the report for every tab without opening a window (on Windows: `Silicio.exe --json > report.json`).
 - `silicio --bench` runs the CPU benchmark (5 s single-thread + 5 s multi-thread) and prints the scores as JSON.
 

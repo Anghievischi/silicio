@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import Sidebar, { tabs } from "$lib/components/Sidebar.svelte";
+  import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import { i18n } from "$lib/i18n/index.svelte";
   import type { CpuInfo } from "$lib/types";
 
@@ -32,7 +33,10 @@
 
 <div class="shell">
   <Sidebar />
-  <main>{@render children()}</main>
+  <main>
+    <UpdateBanner />
+    {@render children()}
+  </main>
 </div>
 
 <style>

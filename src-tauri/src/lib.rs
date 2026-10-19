@@ -215,6 +215,8 @@ pub fn run() {
     let smoke = has_flag("--smoke-test");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .manage(Mutex::new(LiveSampler::new()))
         .manage(Mutex::new(System::new()))

@@ -1,0 +1,23 @@
+# Maintainer: Diógenes A. Anghievischi <32557254+Anghievischi@users.noreply.github.com>
+pkgname=silicio-bin
+pkgver=0.1.2
+pkgrel=1
+pkgdesc="Modern open-source CPU-Z alternative: CPU, motherboard, memory, SPD and GPU with live data"
+arch=('x86_64')
+url="https://github.com/Anghievischi/silicio"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'polkit')
+optdepends=('i2c-tools: SPD tab on systems where the driver is not loaded automatically')
+provides=('silicio')
+conflicts=('silicio')
+source=("Silicio_${pkgver}_amd64.deb::$url/releases/download/v$pkgver/Silicio_${pkgver}_amd64.deb"
+        "LICENSE::https://raw.githubusercontent.com/Anghievischi/silicio/v$pkgver/LICENSE")
+sha256sums=('1d20d2fd35e2fee865c70f440f1504e66af0496b1817e10fdb8cb334a7d53592'
+            'SKIP')
+
+package() {
+  bsdtar -xf data.tar.gz -C "$pkgdir"
+  # O pacote .deb traz uma cópia do helper em /usr/bin; o app usa a de /usr/lib/silicio.
+  rm -f "$pkgdir/usr/bin/silicio-helper"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

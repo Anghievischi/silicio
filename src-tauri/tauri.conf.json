@@ -73,5 +73,17 @@
         ]
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "requireSignedVersion": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExNDBDOTg5NzAxNzREM0EKUldRNlRSZHdpY2xBb1l6blNwMWlZNFRDbUpLczd5dkhQRmppOUFlV0JJMEpHajJKaEJMNVVGaVYK",
+      "endpoints": [
+        "https://github.com/Anghievischi/silicio/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
