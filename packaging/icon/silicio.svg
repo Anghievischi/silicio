@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a98ff"/>
+      <stop offset="1" stop-color="#3b45b0"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#g)"/>
+  <!-- trilhas de um chip nas bordas -->
+  <g stroke="#ffffff" stroke-opacity="0.28" stroke-width="28" stroke-linecap="round">
+    <path d="M300 64v90M420 64v90M540 64v90M660 64v90M300 870v90M420 870v90M540 870v90M660 870v90"/>
+    <path d="M64 300h90M64 420h90M64 540h90M64 660h90M870 300h90M870 420h90M870 540h90M870 660h90"/>
+  </g>
+  <text x="512" y="640" text-anchor="middle" font-family="Inter, DejaVu Sans, sans-serif" font-weight="700" font-size="400" fill="#ffffff">Si</text>
+</svg>

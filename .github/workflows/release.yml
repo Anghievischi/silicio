@@ -1,0 +1,77 @@
+name: Release
+
+# Gera os instaladores de Windows e Linux e publica numa release do GitHub
+# sempre que uma tag vX.Y.Z é enviada (ou manualmente pela aba Actions).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+          - platform: windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Testes do backend
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Silício ${{ github.ref_name }}
+          releaseBody: |
+            ## Downloads
+
+            **Windows 10/11**
+            - `Silicio_*_x64-setup.exe` — instalador (recomendado)
+            - `Silicio-portable.exe` — executável único, sem instalar
+            - `Silicio_*_x64_en-US.msi` — para instalação gerenciada (empresas)
+
+            **Linux**
+            - `.deb` — Debian, Ubuntu, Mint, Pop!_OS
+            - `.rpm` — Fedora, openSUSE
+            - `.AppImage` — qualquer distribuição (sem as leituras avançadas)
+
+            Instruções completas no [README](https://github.com/${{ github.repository }}#instalação).
+          releaseDraft: false
+          prerelease: false
+
+      - name: Executável portátil (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp src-tauri/target/release/silicio.exe Silicio-portable.exe
+          gh release upload "${{ github.ref_name }}" Silicio-portable.exe --clobber

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  Instalar em /usr/share/polkit-1/actions/. Permite que o pkexec rode o helper
+  com uma mensagem própria e mantém a autorização por alguns minutos.
+-->
+<policyconfig>
+  <vendor>Silício</vendor>
+  <action id="br.com.silicio.helper">
+    <description>Read hardware registers</description>
+    <description xml:lang="pt_BR">Ler registradores do hardware</description>
+    <message>Silício needs administrator access to read CPU voltage, socket and bus clock.</message>
+    <message xml:lang="pt_BR">O Silício precisa de acesso de administrador para ler tensão, soquete e bus do processador.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/silicio/silicio-helper</annotate>
+  </action>
+</policyconfig>
