@@ -70,6 +70,9 @@ pub struct CpuLive {
     pub peak_mhz: u64,
     pub usage: f32,
     pub temperature_c: Option<f32>,
+    /// "sensor" (sensor do processador) ou "acpi" (zona térmica da placa, no
+    /// Windows sem driver), que nem sempre corresponde ao núcleo.
+    pub temperature_source: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -165,12 +168,20 @@ impl LiveSampler {
             })
             .collect();
         let n = threads.len().max(1) as u64;
+        let (temperature_c, temperature_source) = match self.cpu_temperature() {
+            Some(t) => (Some(t), Some("sensor")),
+            None => match platform::thermal_zone_celsius() {
+                Some(t) => (Some(t), Some("acpi")),
+                None => (None, None),
+            },
+        };
 
         CpuLive {
             avg_mhz: threads.iter().map(|t| t.mhz).sum::<u64>() / n,
             peak_mhz: threads.iter().map(|t| t.mhz).max().unwrap_or(0),
             usage: self.sys.global_cpu_usage(),
-            temperature_c: self.cpu_temperature(),
+            temperature_c,
+            temperature_source,
             threads,
         }
     }
@@ -339,6 +350,11 @@ mod platform {
         }
     }
 
+    /// No Linux o hwmon já traz o sensor do processador.
+    pub fn thermal_zone_celsius() -> Option<f32> {
+        None
+    }
+
     /// Agrupa as threads pelo par (pacote, core_id) que o kernel expõe.
     pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
         let mut map: BTreeMap<(u32, u32), Vec<usize>> = BTreeMap::new();
@@ -358,7 +374,73 @@ mod platform {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+mod platform {
+    use super::{ClockRange, Core};
+    use crate::hw::wmi;
+    use windows::Win32::Foundation::ERROR_SUCCESS;
+    use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_BINARY, RegGetValueW};
+    use windows::core::w;
+
+    /// Microcódigo do Registro ("Update Revision", 8 bytes). A Intel guarda a
+    /// revisão nos 4 bytes altos; a AMD, nos baixos.
+    pub fn microcode() -> Option<String> {
+        let mut data = [0u8; 8];
+        let mut size = data.len() as u32;
+        let result = unsafe {
+            RegGetValueW(
+                HKEY_LOCAL_MACHINE,
+                w!(r"HARDWARE\DESCRIPTION\System\CentralProcessor\0"),
+                w!("Update Revision"),
+                RRF_RT_REG_BINARY,
+                None,
+                Some(data.as_mut_ptr().cast()),
+                Some(&mut size),
+            )
+        };
+        if result != ERROR_SUCCESS || size < 8 {
+            return None;
+        }
+        let low = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        let high = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
+        let revision = if high != 0 { high } else { low };
+        (revision != 0).then(|| format!("0x{revision:X}"))
+    }
+
+    /// Só o CPUID 0x16 (Intel) informa o clock máximo sem driver; o "~MHz" do
+    /// Registro é o clock base, que mostraríamos errado como máximo.
+    pub fn clock_range() -> ClockRange {
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        let max = raw_cpuid::CpuId::new()
+            .get_processor_frequency_info()
+            .map(|f| f.processor_max_frequency() as u64)
+            .filter(|mhz| *mhz > 0);
+        #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+        let max = None;
+        ClockRange {
+            max_mhz: max,
+            ..ClockRange::default()
+        }
+    }
+
+    pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
+        super::sequential_topology(threads, cores)
+    }
+
+    /// Zona térmica ACPI pelos contadores de desempenho (não exige administrador).
+    pub fn thermal_zone_celsius() -> Option<f32> {
+        wmi::query(
+            "SELECT Temperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation",
+        )
+        .iter()
+        .filter_map(|row| wmi::number(row, "Temperature"))
+        .map(|kelvin| kelvin as f32 - 273.15)
+        .filter(|c| (1.0..130.0).contains(c))
+        .reduce(f32::max)
+    }
+}
+
+#[cfg(not(any(target_os = "linux", windows)))]
 mod platform {
     use super::{ClockRange, Core};
 
@@ -372,6 +454,10 @@ mod platform {
 
     pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
         super::sequential_topology(threads, cores)
+    }
+
+    pub fn thermal_zone_celsius() -> Option<f32> {
+        None
     }
 }
 

@@ -47,6 +47,8 @@ export const en: Messages = {
     cores: "Cores",
     coresHint: "GHz per thread; the bar shows load.",
     l3Cache: "L3 cache",
+    tempAcpi: "ACPI thermal zone",
+    tempAcpiHint: "Without a driver, Windows only exposes the board thermal zone, which may differ from the core.",
     cache: "Cache",
     cacheKind: { data: "Data", instruction: "Instruction", unified: "Unified" },
     advanced: "Advanced readings",

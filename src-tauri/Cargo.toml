@@ -46,3 +46,10 @@ raw-cpuid = "11.6.0"
 
 [target."cfg(windows)".dependencies]
 wmi = "0.18.4"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_Properties",
+    "Win32_Graphics_Dxgi",
+    "Win32_System_Registry",
+] }

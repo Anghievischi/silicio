@@ -9,6 +9,7 @@ use super::pci::PcieLink;
 use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Gpu {
@@ -81,6 +82,34 @@ fn same_pci(a: &str, b: &str) -> bool {
             .to_lowercase()
     };
     tail(a) == tail(b)
+}
+
+/// Extrai o LUID do nome de um contador de GPU do Windows
+/// ("pid_1234_luid_0x00000000_0x0000D1B5_phys_0_eng_3_engtype_3D").
+#[cfg_attr(not(windows), allow(dead_code))]
+fn perf_luid(name: &str) -> Option<String> {
+    let start = name.find("luid_")?;
+    name.get(start..start + 26).map(str::to_lowercase)
+}
+
+/// Uso por GPU como no Gerenciador de Tarefas: soma os processos em cada motor
+/// (3D, cópia, vídeo…) e fica com o motor mais ocupado.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn engine_usage(rows: &[(String, f64)]) -> HashMap<String, f64> {
+    let mut per_engine: HashMap<(String, String), f64> = HashMap::new();
+    for (name, value) in rows {
+        let (Some(luid), Some(engine)) = (perf_luid(name), name.find("phys_").map(|i| &name[i..]))
+        else {
+            continue;
+        };
+        *per_engine.entry((luid, engine.to_string())).or_default() += value;
+    }
+    let mut per_gpu: HashMap<String, f64> = HashMap::new();
+    for ((luid, _), value) in per_engine {
+        let best = per_gpu.entry(luid).or_default();
+        *best = best.max(value);
+    }
+    per_gpu
 }
 
 mod nvidia {
@@ -354,34 +383,132 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use super::{Gpu, GpuLive};
-    use crate::hw::wmi;
+    use super::{Gpu, GpuLive, engine_usage, perf_luid};
+    use crate::hw::{pci, wmi};
+    use std::collections::HashMap;
+    use windows::Win32::Foundation::LUID;
+    use windows::Win32::Graphics::Dxgi::{
+        CreateDXGIFactory1, DXGI_ADAPTER_FLAG_SOFTWARE, IDXGIFactory1,
+    };
 
+    /// Mesmo formato dos nomes dos contadores de desempenho ("luid_0x00000000_0x0000d1b5").
+    fn luid_id(luid: LUID) -> String {
+        format!("luid_0x{:08x}_0x{:08x}", luid.HighPart as u32, luid.LowPart)
+    }
+
+    fn vendor_name(id: u32) -> Option<String> {
+        Some(
+            match id {
+                0x10DE => "NVIDIA",
+                0x1002 | 0x1022 => "AMD",
+                0x8086 => "Intel",
+                0x1414 => "Microsoft",
+                0x5143 => "Qualcomm",
+                _ => return None,
+            }
+            .to_string(),
+        )
+    }
+
+    /// Lista os adaptadores pelo DXGI, que informa VRAM acima de 4 GB (o WMI satura)
+    /// e o LUID usado pelos contadores de uso. Driver e link PCIe vêm do WMI e do PCI.
     pub fn list() -> Vec<Gpu> {
+        let Ok(factory) = (unsafe { CreateDXGIFactory1::<IDXGIFactory1>() }) else {
+            return list_wmi();
+        };
+        let devices = pci::list();
+        let controllers =
+            wmi::query("SELECT PNPDeviceID, DriverVersion FROM Win32_VideoController");
+
+        let mut gpus = Vec::new();
+        for index in 0.. {
+            let Ok(adapter) = (unsafe { factory.EnumAdapters1(index) }) else {
+                break;
+            };
+            let Ok(desc) = (unsafe { adapter.GetDesc1() }) else {
+                continue;
+            };
+            if desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32 != 0 {
+                continue; // "Microsoft Basic Render Driver"
+            }
+            let ids = format!("VEN_{:04X}&DEV_{:04X}", desc.VendorId, desc.DeviceId);
+            let matches = |id: &str| id.to_uppercase().contains(&ids);
+            let name = String::from_utf16_lossy(&desc.Description)
+                .trim_end_matches('\0')
+                .trim()
+                .to_string();
+            gpus.push(Gpu {
+                id: luid_id(desc.AdapterLuid),
+                name: (!name.is_empty()).then_some(name),
+                vendor: vendor_name(desc.VendorId),
+                // GPUs integradas reservam pouca memória dedicada e usam a RAM do sistema.
+                integrated: Some(desc.VendorId != 0x10DE && desc.DedicatedVideoMemory < 1 << 30),
+                driver_version: controllers
+                    .iter()
+                    .find(|row| wmi::text(row, "PNPDeviceID").is_some_and(|id| matches(&id)))
+                    .and_then(|row| wmi::text(row, "DriverVersion")),
+                vram_bytes: Some(desc.DedicatedVideoMemory as u64),
+                shared_bytes: Some(desc.SharedSystemMemory as u64).filter(|v| *v > 0),
+                link: devices
+                    .iter()
+                    .find(|d| matches(&d.address))
+                    .and_then(|d| d.link.clone()),
+                ..Default::default()
+            });
+        }
+        if gpus.is_empty() { list_wmi() } else { gpus }
+    }
+
+    /// Reserva para quando o DXGI não lista nada (ex.: máquinas virtuais só com
+    /// o adaptador básico). O AdapterRAM do WMI é uint32 e satura em 4 GB.
+    fn list_wmi() -> Vec<Gpu> {
         wmi::query("SELECT Name, AdapterCompatibility, DriverVersion, AdapterRAM, PNPDeviceID FROM Win32_VideoController")
             .iter()
-            .map(|row| {
-                let name = wmi::text(row, "Name");
-                let integrated = name.as_deref().map(|n| {
-                    let n = n.to_lowercase();
-                    (n.contains("intel") && !n.contains("arc")) || n == "amd radeon(tm) graphics" || n.contains("vega")
-                });
-                Gpu {
-                    id: wmi::text(row, "PNPDeviceID").unwrap_or_default(),
-                    name,
-                    vendor: wmi::text(row, "AdapterCompatibility"),
-                    integrated,
-                    driver_version: wmi::text(row, "DriverVersion"),
-                    // AdapterRAM é uint32 e satura em 4 GB; a NVML corrige isso nas placas NVIDIA.
-                    vram_bytes: wmi::number(row, "AdapterRAM").filter(|v| *v > 0),
-                    ..Default::default()
-                }
+            .map(|row| Gpu {
+                id: wmi::text(row, "PNPDeviceID").unwrap_or_default(),
+                name: wmi::text(row, "Name"),
+                vendor: wmi::text(row, "AdapterCompatibility"),
+                driver_version: wmi::text(row, "DriverVersion"),
+                vram_bytes: wmi::number(row, "AdapterRAM").filter(|v| *v > 0),
+                ..Default::default()
             })
             .collect()
     }
 
+    /// Uso e VRAM em uso pelos contadores de desempenho do Windows (os mesmos do
+    /// Gerenciador de Tarefas). Funcionam com qualquer fabricante, sem driver extra.
     pub fn live() -> Vec<GpuLive> {
-        Vec::new()
+        let engines: Vec<(String, f64)> = wmi::query(
+            "SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine",
+        )
+        .iter()
+        .filter_map(|row| Some((wmi::text(row, "Name")?, wmi::number(row, "UtilizationPercentage")? as f64)))
+        .collect();
+        let usage = engine_usage(&engines);
+
+        let mut memory: HashMap<String, u64> = HashMap::new();
+        for row in wmi::query(
+            "SELECT Name, DedicatedUsage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory",
+        ) {
+            if let (Some(luid), Some(used)) = (
+                wmi::text(&row, "Name").and_then(|n| perf_luid(&n)),
+                wmi::number(&row, "DedicatedUsage"),
+            ) {
+                *memory.entry(luid).or_default() += used;
+            }
+        }
+
+        let mut ids: Vec<&String> = usage.keys().chain(memory.keys()).collect();
+        ids.sort();
+        ids.dedup();
+        ids.into_iter()
+            .map(|id| GpuLive {
+                id: id.clone(),
+                usage: usage.get(id).map(|u| u.round().min(100.0) as u32),
+                vram_used_bytes: memory.get(id).copied(),
+                ..Default::default()
+            })
+            .collect()
     }
 }
 
@@ -400,7 +527,36 @@ mod platform {
 
 #[cfg(test)]
 mod tests {
-    use super::same_pci;
+    use super::{engine_usage, perf_luid, same_pci};
+
+    #[test]
+    fn soma_processos_por_motor_e_fica_com_o_maior() {
+        let rows = [
+            (
+                "pid_1_luid_0x00000000_0x0000D1B5_phys_0_eng_0_engtype_3D".to_string(),
+                30.0,
+            ),
+            (
+                "pid_2_luid_0x00000000_0x0000D1B5_phys_0_eng_0_engtype_3D".to_string(),
+                25.0,
+            ),
+            (
+                "pid_2_luid_0x00000000_0x0000D1B5_phys_0_eng_3_engtype_VideoDecode".to_string(),
+                40.0,
+            ),
+            (
+                "pid_9_luid_0x00000000_0x0000AAAA_phys_0_eng_0_engtype_3D".to_string(),
+                5.0,
+            ),
+        ];
+        let usage = engine_usage(&rows);
+        assert_eq!(usage["luid_0x00000000_0x0000d1b5"], 55.0);
+        assert_eq!(usage["luid_0x00000000_0x0000aaaa"], 5.0);
+        assert_eq!(
+            perf_luid("luid_0x00000000_0x0000D1B5_phys_0").as_deref(),
+            Some("luid_0x00000000_0x0000d1b5")
+        );
+    }
 
     #[test]
     fn compara_enderecos_pci() {
