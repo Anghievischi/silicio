@@ -49,7 +49,12 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Assina os pacotes para a atualização automática (chave pública em tauri.conf.json).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
+          # Gera os arquivos .sig e o latest.json só aqui, para quem compila localmente não precisar da chave.
+          args: --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          updaterJsonPreferNsis: true
           tagName: ${{ github.ref_name }}
           releaseName: Silício ${{ github.ref_name }}
           releaseBody: |
