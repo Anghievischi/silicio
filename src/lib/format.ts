@@ -17,10 +17,11 @@ export function bytes(n: number | null | undefined): string {
   return `${Math.round(n / 1024 ** 2)} MB`;
 }
 
-/** SMBIOS usa MM/DD/AAAA; mostramos DD/MM/AAAA. */
-export function smbiosDate(date: string | null): string {
+/** SMBIOS usa MM/DD/AAAA; mostramos a data no formato do idioma. */
+export function smbiosDate(date: string | null, locale: string): string {
   const m = date?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return m ? `${m[2]}/${m[1]}/${m[3]}` : (date ?? "—");
+  if (!m) return date ?? "—";
+  return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2])).toLocaleDateString(locale);
 }
 
 export const or = (v: string | number | null | undefined) => (v === null || v === undefined || v === "" ? "—" : String(v));

@@ -229,9 +229,9 @@ mod x86 {
                     Cache {
                         level: c.level(),
                         kind: match c.cache_type() {
-                            CacheType::Data => "Dados",
-                            CacheType::Instruction => "Instruções",
-                            _ => "Unificado",
+                            CacheType::Data => "data",
+                            CacheType::Instruction => "instruction",
+                            _ => "unified",
                         },
                         size_kib: (size / 1024) as u64,
                         ways: c.associativity(),
@@ -290,11 +290,11 @@ mod x86 {
         add!(e, security, has_smep => "SMEP", has_smap => "SMAP", has_sgx => "SGX", has_cet_ss => "CET");
 
         [
-            ("SIMD", simd),
-            ("Criptografia", crypto),
-            ("Virtualização", virt),
-            ("Bits e inteiros", bits),
-            ("Segurança", security),
+            ("simd", simd),
+            ("crypto", crypto),
+            ("virtualization", virt),
+            ("integer", bits),
+            ("security", security),
         ]
         .into_iter()
         .filter(|(_, items)| !items.is_empty())

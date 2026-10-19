@@ -85,21 +85,22 @@ fn clean(value: Option<String>) -> Option<String> {
         .filter(|v| !v.is_empty() && !PLACEHOLDERS.contains(&v.to_lowercase().as_str()))
 }
 
-/// Tipos de chassi da especificação SMBIOS (tabela 3.3.4.1).
+/// Tipos de chassi da especificação SMBIOS (tabela 3.3.4.1), como códigos que a
+/// interface traduz.
 fn chassis_name(kind: u8) -> &'static str {
     match kind {
-        3 | 4 | 6 | 7 => "Desktop",
-        5 => "Pizza box",
-        8 | 9 | 10 | 14 => "Notebook",
-        11 => "Portátil de mão",
-        13 => "All-in-one",
-        17 | 23 | 28 => "Servidor",
-        30 => "Tablet",
-        31 => "Conversível",
-        32 => "Destacável",
-        35 => "Mini PC",
-        36 => "Stick PC",
-        _ => "Outro",
+        3 | 4 | 6 | 7 => "desktop",
+        5 => "pizza-box",
+        8 | 9 | 10 | 14 => "notebook",
+        11 => "handheld",
+        13 => "all-in-one",
+        17 | 23 | 28 => "server",
+        30 => "tablet",
+        31 => "convertible",
+        32 => "detachable",
+        35 => "mini-pc",
+        36 => "stick-pc",
+        _ => "other",
     }
 }
 

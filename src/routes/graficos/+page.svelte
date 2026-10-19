@@ -4,6 +4,7 @@
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { bytes, or } from "$lib/format";
+  import { t } from "$lib/i18n/index.svelte";
   import type { Gpu, GpuLive } from "$lib/types";
 
   const HISTORY = 60;
@@ -49,21 +50,21 @@
 </script>
 
 {#if error}
-  <p class="error">Não foi possível ler as placas de vídeo: {error}</p>
+  <p class="error">{t().gpu.error}: {error}</p>
 {:else if !gpus}
-  <p class="muted">Lendo as placas de vídeo…</p>
+  <p class="muted">{t().gpu.loading}</p>
 {:else if gpus.length === 0}
   <header>
     <div>
-      <h1>Gráficos</h1>
-      <p class="muted">Nenhuma placa de vídeo encontrada.</p>
+      <h1>{t().tabs.gpu}</h1>
+      <p class="muted">{t().gpu.none}</p>
     </div>
   </header>
 {:else if gpu}
   <header>
     <div>
-      <span class="vendor">{gpu.integrated == null ? or(gpu.vendor) : gpu.integrated ? "Integrada" : "Dedicada"}</span>
-      <h1>{[gpu.vendor, gpu.name].filter(Boolean).join(" ") || "Placa de vídeo"}</h1>
+      <span class="vendor">{gpu.integrated == null ? or(gpu.vendor) : gpu.integrated ? t().gpu.integrated : t().gpu.dedicated}</span>
+      <h1>{[gpu.vendor, gpu.name].filter(Boolean).join(" ") || t().gpu.card}</h1>
       <p class="muted">{[gpu.driver, gpu.driver_version].filter(Boolean).join(" · ")}</p>
     </div>
     {#if gpus.length > 1}
@@ -79,19 +80,19 @@
 
   <div class="stats">
     <div class="stat">
-      <span class="muted">Clock do núcleo</span>
+      <span class="muted">{t().gpu.coreClock}</span>
       <strong class="num">{mhz(now?.core_mhz)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Clock da memória</span>
+      <span class="muted">{t().gpu.memoryClock}</span>
       <strong class="num">{mhz(now?.memory_mhz)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Uso</span>
+      <span class="muted">{t().common.usage}</span>
       <strong class="num">{now?.usage != null ? `${now.usage}%` : "—"}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Temperatura</span>
+      <span class="muted">{t().common.temperature}</span>
       {#if now?.temperature_c != null}
         <strong class="num" style:color={tempColor(now.temperature_c)}>{now.temperature_c.toFixed(0)} °C</strong>
       {:else}
@@ -99,32 +100,32 @@
       {/if}
     </div>
     <div class="stat">
-      <span class="muted">Consumo</span>
+      <span class="muted">{t().gpu.power}</span>
       <strong class="num">{now?.power_w != null ? `${now.power_w.toFixed(1)} W` : "—"}</strong>
     </div>
   </div>
 
   <div class="grid">
-    <Card title="Uso ao vivo" span={2}>
+    <Card title={t().gpu.liveUsage} span={2}>
       <div class="usage-head">
         <span class="big num">{now?.usage != null ? `${now.usage}%` : "—"}</span>
         <div class="muted right">
-          {#if now?.voltage_mv}<div>Tensão <strong class="num">{(now.voltage_mv / 1000).toFixed(3)} V</strong></div>{/if}
-          {#if now?.fan_rpm}<div>Ventoinha <strong class="num">{now.fan_rpm} RPM</strong></div>{/if}
-          {#if now?.fan_percent != null}<div>Ventoinha <strong class="num">{now.fan_percent}%</strong></div>{/if}
+          {#if now?.voltage_mv}<div>{t().common.voltage} <strong class="num">{(now.voltage_mv / 1000).toFixed(3)} V</strong></div>{/if}
+          {#if now?.fan_rpm}<div>{t().gpu.fan} <strong class="num">{now.fan_rpm} RPM</strong></div>{/if}
+          {#if now?.fan_percent != null}<div>{t().gpu.fan} <strong class="num">{now.fan_percent}%</strong></div>{/if}
         </div>
       </div>
       <Sparkline values={history[gpu.id] ?? []} max={100} capacity={HISTORY} />
       {#if !now}
-        <p class="hint muted">Leituras ao vivo indisponíveis para esta placa neste sistema.</p>
+        <p class="hint muted">{t().gpu.noLive}</p>
       {/if}
     </Card>
 
-    <Card title="Memória de vídeo">
+    <Card title={t().gpu.videoMemory}>
       <dl>
-        <dt>{gpu.integrated ? "Reservada" : "VRAM"}</dt><dd class="num">{bytes(gpu.vram_bytes)}</dd>
-        {#if gpu.shared_bytes}<dt>Compartilhada</dt><dd class="num">{bytes(gpu.shared_bytes)}</dd>{/if}
-        <dt>Em uso</dt>
+        <dt>{gpu.integrated ? t().gpu.reserved : "VRAM"}</dt><dd class="num">{bytes(gpu.vram_bytes)}</dd>
+        {#if gpu.shared_bytes}<dt>{t().gpu.shared}</dt><dd class="num">{bytes(gpu.shared_bytes)}</dd>{/if}
+        <dt>{t().gpu.inUse}</dt>
         <dd class="num">{bytes(now?.vram_used_bytes)}{#if vramPct != null}<span class="muted">{` · ${vramPct.toFixed(0)}%`}</span>{/if}</dd>
       </dl>
       {#if vramPct != null}
@@ -132,26 +133,26 @@
       {/if}
     </Card>
 
-    <Card title="Clocks máximos">
+    <Card title={t().gpu.maxClocks}>
       <dl>
-        <dt>Núcleo</dt><dd class="num">{mhz(gpu.max_core_mhz)}</dd>
-        <dt>Memória</dt><dd class="num">{mhz(gpu.max_memory_mhz)}</dd>
+        <dt>{t().gpu.core}</dt><dd class="num">{mhz(gpu.max_core_mhz)}</dd>
+        <dt>{t().gpu.memory}</dt><dd class="num">{mhz(gpu.max_memory_mhz)}</dd>
       </dl>
     </Card>
 
-    <Card title="Barramento">
+    <Card title={t().common.bus}>
       <dl>
-        <dt>Link atual</dt><dd class="num">{gpu.link ? link(gpu.link.current_gen, gpu.link.current_width) : "—"}</dd>
-        <dt>Máximo</dt><dd class="num">{gpu.link ? link(gpu.link.max_gen, gpu.link.max_width) : "—"}</dd>
-        <dt>Endereço</dt><dd class="num muted">{gpu.id}</dd>
+        <dt>{t().common.pcieCurrent}</dt><dd class="num">{gpu.link ? link(gpu.link.current_gen, gpu.link.current_width) : "—"}</dd>
+        <dt>{t().common.pcieMax}</dt><dd class="num">{gpu.link ? link(gpu.link.max_gen, gpu.link.max_width) : "—"}</dd>
+        <dt>{t().gpu.address}</dt><dd class="num muted">{gpu.id}</dd>
       </dl>
     </Card>
 
-    <Card title="Firmware">
+    <Card title={t().gpu.firmware}>
       <dl>
-        <dt>BIOS de vídeo</dt><dd class="num">{or(gpu.vbios)}</dd>
+        <dt>{t().gpu.vbios}</dt><dd class="num">{or(gpu.vbios)}</dd>
         <dt>Driver</dt><dd>{or(gpu.driver)}</dd>
-        <dt>Versão</dt><dd class="num">{or(gpu.driver_version)}</dd>
+        <dt>{t().common.version}</dt><dd class="num">{or(gpu.driver_version)}</dd>
       </dl>
     </Card>
   </div>

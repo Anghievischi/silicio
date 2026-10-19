@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- English interface. The language follows the system and can be switched live at the bottom of the sidebar; the choice is remembered.
+
+### Changed
+
+- The backend returns codes instead of Portuguese text for cache types, instruction groups, chassis types and SPD voltage, so the interface can translate them. This changes the `--json` output for those fields.
+
 ## [0.1.1]
 
 ### Fixed

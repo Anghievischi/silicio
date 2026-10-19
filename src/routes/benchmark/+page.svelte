@@ -4,6 +4,7 @@
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { ghz } from "$lib/format";
+  import { i18n, t } from "$lib/i18n/index.svelte";
   import type { BenchResult, CpuInfo, CpuLive, StressStatus } from "$lib/types";
 
   type Run = { date: string; seconds: number; single: number; multi: number; threads: number };
@@ -122,22 +123,22 @@
     };
   });
 
-  const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+  const fmt = (n: number) => Math.round(n).toLocaleString(i18n.locale);
   const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 </script>
 
 <header>
   <div>
-    <span class="vendor">Benchmark</span>
-    <h1>{cpu?.brand ?? "Processador"}</h1>
-    <p class="muted">{cpu ? `${cpu.cores} núcleos · ${cpu.threads} threads` : ""}</p>
+    <span class="vendor">{t().tabs.bench}</span>
+    <h1>{cpu?.brand ?? t().bench.processor}</h1>
+    <p class="muted">{cpu ? t().bench.coresThreads(cpu.cores, cpu.threads) : ""}</p>
   </div>
 </header>
 
 {#if error}<p class="error">{error}</p>{/if}
 
 <div class="grid">
-  <Card title="Desempenho" span={2}>
+  <Card title={t().bench.performance} span={2}>
     <div class="results">
       <div class="result">
         <span class="muted">Single-thread</span>
@@ -150,43 +151,40 @@
         <div class="bar"><div style:width="{multi ? (multi.score / best.multi) * 100 : 0}%"></div></div>
       </div>
       <div class="result">
-        <span class="muted">Proporção multi ÷ single</span>
+        <span class="muted">{t().bench.ratio}</span>
         <strong class="num">{ratio ? `${ratio.toFixed(2)}×` : "—"}</strong>
       </div>
     </div>
 
     <div class="controls">
       <label>
-        Duração de cada etapa
+        {t().bench.duration}
         <select bind:value={duration} disabled={phase !== "idle"}>
           {#each DURATIONS as d}<option value={d}>{d} s</option>{/each}
         </select>
       </label>
       <button class="primary" onclick={runBenchmark} disabled={phase !== "idle" || !!stress?.running}>
-        {#if phase === "idle"}Rodar benchmark{:else}{phase === "single" ? "Single-thread" : "Multi-thread"}… {Math.round(progress * 100)}%{/if}
+        {#if phase === "idle"}{t().bench.run}{:else}{phase === "single" ? "Single-thread" : "Multi-thread"}… {Math.round(progress * 100)}%{/if}
       </button>
     </div>
     {#if phase !== "idle"}
       <div class="bar progress"><div style:width="{progress * 100}%"></div></div>
     {/if}
-    <p class="hint muted">
-      A pontuação é o número de blocos de trabalho (fractal de Mandelbrot + hash) concluídos por segundo. Compare só
-      entre execuções do Silício. Feche outros programas para um resultado estável.
-    </p>
+    <p class="hint muted">{t().bench.scoreHint}</p>
   </Card>
 
-  <Card title="Histórico">
+  <Card title={t().bench.history}>
     {#if history.length === 0}
-      <p class="muted">Os últimos 10 resultados aparecem aqui.</p>
+      <p class="muted">{t().bench.historyEmpty}</p>
     {:else}
       <table>
         <thead>
-          <tr><th>Data</th><th>Single</th><th>Multi</th></tr>
+          <tr><th>{t().common.date}</th><th>Single</th><th>Multi</th></tr>
         </thead>
         <tbody>
           {#each history as h}
             <tr>
-              <td class="muted">{new Date(h.date).toLocaleDateString("pt-BR")}</td>
+              <td class="muted">{new Date(h.date).toLocaleDateString(i18n.locale)}</td>
               <td class="num">{fmt(h.single)}</td>
               <td class="num">{fmt(h.multi)}</td>
             </tr>
@@ -196,45 +194,39 @@
     {/if}
   </Card>
 
-  <Card title="Teste de estresse" span={3}>
+  <Card title={t().bench.stress} span={3}>
     <div class="stress-head">
       <div>
-        <p class="muted">
-          Carga máxima em todas as threads até você parar. Acompanhe clock e temperatura para ver se o processador reduz o
-          clock por calor (throttling). Continua rodando se você trocar de aba.
-        </p>
+        <p class="muted">{t().bench.stressText}</p>
       </div>
       <button class="primary" class:danger={stress?.running} onclick={toggleStress} disabled={phase !== "idle"}>
-        {stress?.running ? "Parar" : "Iniciar estresse"}
+        {stress?.running ? t().bench.stop : t().bench.startStress}
       </button>
     </div>
 
     {#if stress?.running || clocks.length > 0}
       <div class="stress-stats">
-        <div><span class="muted">Tempo</span><strong class="num">{time(stress?.seconds ?? 0)}</strong></div>
-        <div><span class="muted">Clock médio</span><strong class="num">{ghz(live?.avg_mhz)}</strong></div>
-        <div><span class="muted">Pico inicial</span><strong class="num">{ghz(peakMhz)}</strong></div>
+        <div><span class="muted">{t().bench.time}</span><strong class="num">{time(stress?.seconds ?? 0)}</strong></div>
+        <div><span class="muted">{t().bench.avgClock}</span><strong class="num">{ghz(live?.avg_mhz)}</strong></div>
+        <div><span class="muted">{t().bench.initialPeak}</span><strong class="num">{ghz(peakMhz)}</strong></div>
         <div>
-          <span class="muted">Temperatura</span>
+          <span class="muted">{t().common.temperature}</span>
           <strong class="num">{live?.temperature_c != null ? `${live.temperature_c.toFixed(0)} °C` : "—"}</strong>
         </div>
-        <div><span class="muted">Uso</span><strong class="num">{live ? `${live.usage.toFixed(0)}%` : "—"}</strong></div>
+        <div><span class="muted">{t().common.usage}</span><strong class="num">{live ? `${live.usage.toFixed(0)}%` : "—"}</strong></div>
       </div>
       <div class="charts">
         <div>
-          <span class="muted label">Clock (últimos 2 min)</span>
+          <span class="muted label">{t().bench.clockChart}</span>
           <Sparkline values={clocks} max={Math.max(cpu?.clocks.max_mhz ?? 0, peakMhz, 1000)} capacity={LIVE_POINTS} />
         </div>
         <div>
-          <span class="muted label">Temperatura</span>
+          <span class="muted label">{t().common.temperature}</span>
           <Sparkline values={temps} max={105} capacity={LIVE_POINTS} />
         </div>
       </div>
       {#if throttling}
-        <p class="warn">
-          O clock médio dos últimos 10 s está mais de 15% abaixo do pico inicial. O processador provavelmente está limitado por temperatura
-          ou energia; verifique a ventilação e o modo de energia.
-        </p>
+        <p class="warn">{t().bench.throttling}</p>
       {/if}
     {/if}
   </Card>

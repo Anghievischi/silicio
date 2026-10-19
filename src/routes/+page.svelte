@@ -4,6 +4,7 @@
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { ghz, hex, size } from "$lib/format";
+  import { t } from "$lib/i18n/index.svelte";
   import { privileged, unlock } from "$lib/privileged.svelte";
   import type { CpuInfo, CpuLive } from "$lib/types";
 
@@ -16,7 +17,7 @@
   let bus = $derived(privileged.data?.bus_mhz ?? null);
   let busMhz = $derived(bus ?? NOMINAL_BUS_MHZ);
   let vcore = $derived.by(() => {
-    const volts = privileged.data?.threads.map((t) => t.voltage).filter((v): v is number => v != null) ?? [];
+    const volts = privileged.data?.threads.map((thread) => thread.voltage).filter((v): v is number => v != null) ?? [];
     return volts.length ? Math.max(...volts) : null;
   });
 
@@ -26,7 +27,7 @@
   let error = $state<string | null>(null);
   let copied = $state(false);
 
-  let l3 = $derived(info?.caches.filter((c) => c.level === 3).reduce((t, c) => t + c.size_kib * c.instances, 0) ?? 0);
+  let l3 = $derived(info?.caches.filter((c) => c.level === 3).reduce((sum, c) => sum + c.size_kib * c.instances, 0) ?? 0);
   let scaleMhz = $derived(Math.max(info?.clocks.max_mhz ?? 0, live?.peak_mhz ?? 0, 1000));
 
   onMount(() => {
@@ -73,9 +74,9 @@
 </script>
 
 {#if error}
-  <p class="error">Não foi possível ler o processador: {error}</p>
+  <p class="error">{t().cpu.error}: {error}</p>
 {:else if !info}
-  <p class="muted">Lendo o processador…</p>
+  <p class="muted">{t().cpu.loading}</p>
 {:else}
   <header>
     <div>
@@ -85,32 +86,32 @@
         {#if info.codename}
           {info.codename.name} · {info.codename.microarch} · {info.codename.process}
         {:else}
-          Família {hex(info.signature.family)} · Modelo {hex(info.signature.model)}
+          {t().cpu.familyModel(hex(info.signature.family), hex(info.signature.model))}
         {/if}
       </p>
     </div>
-    <button class="ghost" onclick={copyJson}>{copied ? "Copiado ✓" : "Copiar JSON"}</button>
+    <button class="ghost" onclick={copyJson}>{copied ? t().cpu.copied : t().cpu.copyJson}</button>
   </header>
 
   <div class="stats">
     <div class="stat">
-      <span class="muted">Núcleos / threads</span>
+      <span class="muted">{t().cpu.coresThreads}</span>
       <strong class="num">{info.cores} / {info.threads}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Clock médio</span>
+      <span class="muted">{t().cpu.avgClock}</span>
       <strong class="num">{ghz(live?.avg_mhz)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Clock máximo</span>
+      <span class="muted">{t().cpu.maxClock}</span>
       <strong class="num">{ghz(info.clocks.max_mhz)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Cache L3</span>
+      <span class="muted">{t().cpu.l3Cache}</span>
       <strong class="num">{l3 ? size(l3) : "—"}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Temperatura</span>
+      <span class="muted">{t().common.temperature}</span>
       {#if live?.temperature_c != null}
         <strong class="num" style:color={tempColor(live.temperature_c)}>{live.temperature_c.toFixed(0)} °C</strong>
       {:else}
@@ -120,16 +121,16 @@
   </div>
 
   <div class="grid">
-    <Card title="Clock ao vivo" span={2}>
+    <Card title={t().cpu.liveClock} span={2}>
       <div class="clock-head">
         <div>
           <span class="big num">{ghz(live?.avg_mhz)}</span>
-          <span class="muted">média · pico {ghz(live?.peak_mhz)}</span>
+          <span class="muted">{t().cpu.avgPeak(ghz(live?.peak_mhz))}</span>
         </div>
         <div class="muted right">
-          <div>Uso total <strong class="num">{live ? live.usage.toFixed(0) : "—"}%</strong></div>
-          <div title={bus ? "Bus medido via TSC e MSR" : "Estimado a partir do clock de referência nominal de 100 MHz"}>
-            Multiplicador {bus ? "" : "≈ "}<strong class="num">{live ? `x${(live.avg_mhz / busMhz).toFixed(1)}` : "—"}</strong>
+          <div>{t().cpu.totalUsage} <strong class="num">{live ? live.usage.toFixed(0) : "—"}%</strong></div>
+          <div title={bus ? t().cpu.busMeasured : t().cpu.busEstimated}>
+            {t().cpu.multiplier} {bus ? "" : "≈ "}<strong class="num">{live ? `x${(live.avg_mhz / busMhz).toFixed(1)}` : "—"}</strong>
             · bus {busMhz.toFixed(bus ? 2 : 0)} MHz
           </div>
           {#if info.clocks.driver}<div>{info.clocks.driver} · {info.clocks.governor}</div>{/if}
@@ -138,32 +139,32 @@
       <Sparkline values={history} max={scaleMhz} capacity={HISTORY} />
       <div class="axis muted">
         <span>{ghz(info.clocks.min_mhz)}</span>
-        <span>últimos {HISTORY} s</span>
+        <span>{t().common.lastSeconds(HISTORY)}</span>
         <span>{ghz(scaleMhz)}</span>
       </div>
     </Card>
 
-    <Card title="Especificação">
+    <Card title={t().cpu.specification}>
       <dl>
-        <dt>Fabricante</dt><dd>{info.vendor_id}</dd>
-        <dt>Família</dt><dd class="num">{hex(info.signature.family)} <span class="muted">(base {hex(info.signature.base_family)} + ext {hex(info.signature.ext_family)})</span></dd>
-        <dt>Modelo</dt><dd class="num">{hex(info.signature.model)} <span class="muted">(base {hex(info.signature.base_model)} · ext {hex(info.signature.ext_model)})</span></dd>
+        <dt>{t().common.manufacturer}</dt><dd>{info.vendor_id}</dd>
+        <dt>{t().common.family}</dt><dd class="num">{hex(info.signature.family)} <span class="muted">(base {hex(info.signature.base_family)} + ext {hex(info.signature.ext_family)})</span></dd>
+        <dt>{t().common.model}</dt><dd class="num">{hex(info.signature.model)} <span class="muted">(base {hex(info.signature.base_model)} · ext {hex(info.signature.ext_model)})</span></dd>
         <dt>Stepping</dt><dd class="num">{info.signature.stepping}</dd>
-        <dt>Microcódigo</dt><dd class="num">{info.microcode ?? "—"}</dd>
+        <dt>{t().cpu.microcode}</dt><dd class="num">{info.microcode ?? "—"}</dd>
         {#if info.codename}
-          <dt>Processo</dt><dd>{info.codename.process}</dd>
+          <dt>{t().cpu.process}</dt><dd>{info.codename.process}</dd>
         {/if}
       </dl>
     </Card>
 
-    <Card title="Núcleos" span={2}>
+    <Card title={t().cpu.cores} span={2}>
       <div class="cores">
         {#each info.topology as core}
           <div class="core">
             <span class="core-id muted">C{core.id}</span>
-            {#each core.threads as t}
-              {@const th = live?.threads[t]}
-              <div class="thread" title="Thread {t}">
+            {#each core.threads as thread}
+              {@const th = live?.threads[thread]}
+              <div class="thread" title="Thread {thread}">
                 <span class="num">{th ? (th.mhz / 1000).toFixed(2) : "—"}</span>
                 <div class="bar"><div style:width="{th?.usage ?? 0}%" style:background={loadColor(th?.usage ?? 0)}></div></div>
               </div>
@@ -171,15 +172,15 @@
           </div>
         {/each}
       </div>
-      <p class="hint muted">GHz por thread; a barra mostra o uso.</p>
+      <p class="hint muted">{t().cpu.coresHint}</p>
     </Card>
 
-    <Card title="Cache">
+    <Card title={t().cpu.cache}>
       <table>
         <tbody>
           {#each info.caches as c}
             <tr>
-              <th>L{c.level} <span class="muted">{c.kind}</span></th>
+              <th>L{c.level} <span class="muted">{t().cpu.cacheKind[c.kind] ?? c.kind}</span></th>
               <td class="num">{c.instances > 1 ? `${c.instances} × ` : ""}{size(c.size_kib)}</td>
               <td class="num muted">{c.ways}-way · {c.line_bytes} B</td>
             </tr>
@@ -188,49 +189,46 @@
       </table>
     </Card>
 
-    <Card title="Leituras avançadas" span={3}>
+    <Card title={t().cpu.advanced} span={3}>
       {#if privileged.data}
         {@const p = privileged.data}
         <div class="adv">
-          <div><span class="muted">Soquete</span><strong>{p.processor?.socket ?? "—"}</strong></div>
+          <div><span class="muted">{t().cpu.socket}</span><strong>{p.processor?.socket ?? "—"}</strong></div>
           <div>
-            <span class="muted">Tensão do núcleo (VID)</span>
+            <span class="muted">{t().cpu.vid}</span>
             <strong class="num">{vcore ? `${vcore.toFixed(3)} V` : "—"}</strong>
           </div>
-          <div><span class="muted">Bus real</span><strong class="num">{bus ? `${bus.toFixed(2)} MHz` : "—"}</strong></div>
+          <div><span class="muted">{t().cpu.realBus}</span><strong class="num">{bus ? `${bus.toFixed(2)} MHz` : "—"}</strong></div>
           <div>
-            <span class="muted">Multiplicador base</span>
+            <span class="muted">{t().cpu.baseMultiplier}</span>
             <strong class="num">{p.base_ratio ? `x${p.base_ratio.toFixed(1)}` : "—"}</strong>
           </div>
           <div>
-            <span class="muted">Clock externo (SMBIOS)</span>
+            <span class="muted">{t().cpu.externalClock}</span>
             <strong class="num">{p.processor?.external_clock_mhz ? `${p.processor.external_clock_mhz} MHz` : "—"}</strong>
           </div>
         </div>
         {#if p.errors.length}
-          <p class="hint muted">Algumas leituras falharam: {p.errors.join("; ")}</p>
+          <p class="hint muted">{t().cpu.someFailed(p.errors.join("; "))}</p>
         {/if}
       {:else if isWindows}
-        <p class="muted">No Windows, soquete, tensão e bus real ainda não estão disponíveis (vão usar o driver PawnIO).</p>
+        <p class="muted">{t().cpu.windowsUnavailable}</p>
       {:else}
         <div class="unlock">
-          <p class="muted">
-            Soquete, tensão do núcleo e o bus real exigem acesso de administrador (registradores MSR e tabela SMBIOS).
-            O Silício roda um pequeno helper só de leitura, e o sistema pede sua senha.
-          </p>
+          <p class="muted">{t().cpu.unlockText}</p>
           <button class="ghost" onclick={unlock} disabled={privileged.loading}>
-            {privileged.loading ? "Aguardando autorização…" : "Desbloquear"}
+            {privileged.loading ? t().cpu.waitingAuth : t().cpu.unlock}
           </button>
         </div>
         {#if privileged.error}<p class="error hint">{privileged.error}</p>{/if}
       {/if}
     </Card>
 
-    <Card title="Instruções" span={3}>
+    <Card title={t().cpu.instructions} span={3}>
       <div class="groups">
         {#each info.instructions as group}
           <div>
-            <h3>{group.name}</h3>
+            <h3>{t().cpu.instructionGroup[group.name] ?? group.name}</h3>
             <div class="chips">
               {#each group.items as item}<span class="chip">{item}</span>{/each}
             </div>

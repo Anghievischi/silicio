@@ -35,7 +35,8 @@ pub struct Ddr4 {
     pub die_density_gbit: f32,
     pub bank_groups: u8,
     pub banks_per_group: u8,
-    pub voltage: &'static str,
+    /// Tensão nominal em volts (DDR4 só define 1,2 V).
+    pub voltage: Option<f64>,
     pub module_manufacturer: Option<String>,
     pub dram_manufacturer: Option<String>,
     pub part_number: Option<String>,
@@ -104,7 +105,7 @@ pub fn decode(address: &str, data: &[u8]) -> SpdModule {
         Some(0x0C) => "DDR4",
         Some(0x12) => "DDR5",
         Some(0x0B) => "DDR3",
-        _ => "Desconhecido",
+        _ => "unknown",
     };
 
     let (module_type, decoded) = if kind == "DDR4" && data.len() >= 384 {
@@ -252,7 +253,7 @@ fn decode_ddr4(d: &[u8]) -> Ddr4 {
         die_density_gbit,
         bank_groups: 1 << (d[4] >> 6),
         banks_per_group: 4 << ((d[4] >> 4) & 0x03),
-        voltage: if d[11] & 0x01 != 0 { "1.2 V" } else { "—" },
+        voltage: (d[11] & 0x01 != 0).then_some(1.2),
         module_manufacturer: manufacturer(d[320], d[321]),
         dram_manufacturer: manufacturer(d[350], d[351]),
         part_number: (!part.is_empty()).then_some(part),

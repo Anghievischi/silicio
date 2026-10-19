@@ -4,6 +4,7 @@
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { bytes, or } from "$lib/format";
+  import { t } from "$lib/i18n/index.svelte";
   import type { MemoryInfo, MemoryLive } from "$lib/types";
 
   const HISTORY = 60;
@@ -14,32 +15,27 @@
   let error = $state<string | null>(null);
 
   let modules = $derived(info?.slots.filter((s) => s.size_bytes > 0) ?? []);
-  let installed = $derived(modules.reduce((t, s) => t + s.size_bytes, 0));
+  let installed = $derived(modules.reduce((sum, s) => sum + s.size_bytes, 0));
   let usedPct = $derived(live ? (live.used_bytes / live.total_bytes) * 100 : 0);
 
   type Check = { level: "ok" | "warn" | "info"; text: string };
 
   let checks = $derived.by<Check[]>(() => {
     if (!info) return [];
+    const m = t().memory;
     const list: Check[] = [];
     if (modules.length > 0 && info.channels < 2) {
-      list.push({
-        level: "warn",
-        text: "Memória em single channel. Um segundo módulo em outro canal dobra a largura de banda, o que faz muita diferença em gráficos integrados.",
-      });
+      list.push({ level: "warn", text: m.singleChannel });
     }
     const slow = modules.filter((s) => s.speed_mts && s.configured_mts && s.configured_mts < s.speed_mts);
     if (slow.length > 0) {
-      list.push({
-        level: "warn",
-        text: `Módulos rodando a ${slow[0].configured_mts} MT/s, abaixo dos ${slow[0].speed_mts} MT/s nominais. Verifique se o XMP/EXPO está ativado no BIOS.`,
-      });
+      list.push({ level: "warn", text: m.slow(slow[0].configured_mts!, slow[0].speed_mts!) });
     }
     if (new Set(modules.map((s) => s.part_number)).size > 1) {
-      list.push({ level: "info", text: "Módulos de modelos diferentes. Funciona, mas kits iguais costumam ser mais estáveis." });
+      list.push({ level: "info", text: m.mixed });
     }
     if (list.length === 0 && modules.length > 0) {
-      list.push({ level: "ok", text: "Configuração de memória sem problemas aparentes." });
+      list.push({ level: "ok", text: m.allGood });
     }
     return list;
   });
@@ -63,10 +59,6 @@
     return () => clearInterval(timer);
   });
 
-  function channelLabel(n: number) {
-    return ["—", "Single channel", "Dual channel", "Triple channel", "Quad channel"][n] ?? `${n} canais`;
-  }
-
   function usageColor(pct: number) {
     if (pct > 90) return "var(--hot)";
     if (pct > 75) return "var(--warn)";
@@ -75,61 +67,61 @@
 </script>
 
 {#if error}
-  <p class="error">Não foi possível ler a memória: {error}</p>
+  <p class="error">{t().memory.error}: {error}</p>
 {:else if !info}
-  <p class="muted">Lendo a memória…</p>
+  <p class="muted">{t().memory.loading}</p>
 {:else}
   <header>
     <div>
       {#if info.kind}<span class="vendor">{info.kind}</span>{/if}
       <h1>{bytes(installed || info.total_bytes)} {info.kind ?? ""}</h1>
       <p class="muted">
-        {[channelLabel(info.channels), info.speed_mts && `${info.speed_mts} MT/s`].filter(Boolean).join(" · ")}
+        {[t().memory.channels(info.channels), info.speed_mts && `${info.speed_mts} MT/s`].filter(Boolean).join(" · ")}
       </p>
     </div>
   </header>
 
   <div class="stats">
     <div class="stat">
-      <span class="muted">Instalada</span>
+      <span class="muted">{t().memory.installed}</span>
       <strong class="num">{bytes(installed || info.total_bytes)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Utilizável pelo sistema</span>
+      <span class="muted">{t().memory.usable}</span>
       <strong class="num">{bytes(info.total_bytes)}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Velocidade efetiva</span>
+      <span class="muted">{t().memory.effectiveSpeed}</span>
       <strong class="num">{info.speed_mts ? `${info.speed_mts} MT/s` : "—"}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Clock real da DRAM</span>
+      <span class="muted">{t().memory.dramClock}</span>
       <strong class="num">{info.speed_mts ? `${info.speed_mts / 2} MHz` : "—"}</strong>
     </div>
     <div class="stat">
-      <span class="muted">Capacidade máxima</span>
+      <span class="muted">{t().memory.maxCapacity}</span>
       <strong class="num">{bytes(info.max_capacity_bytes)}</strong>
     </div>
   </div>
 
   <div class="grid">
-    <Card title="Uso ao vivo" span={2}>
+    <Card title={t().memory.liveUsage} span={2}>
       <div class="usage-head">
         <div>
           <span class="big num">{usedPct.toFixed(0)}%</span>
-          <span class="muted">{bytes(live?.used_bytes)} em uso · {bytes(live?.available_bytes)} livres</span>
+          <span class="muted">{t().memory.usedFree(bytes(live?.used_bytes), bytes(live?.available_bytes))}</span>
         </div>
         <div class="muted right">
-          Swap <strong class="num">{bytes(live?.swap_used_bytes)}</strong> de {bytes(live?.swap_total_bytes)}
+          Swap <strong class="num">{bytes(live?.swap_used_bytes)}</strong> {t().memory.swapOf} {bytes(live?.swap_total_bytes)}
         </div>
       </div>
       <div class="bar"><div style:width="{usedPct}%" style:background={usageColor(usedPct)}></div></div>
       <Sparkline values={history} max={100} capacity={HISTORY} />
     </Card>
 
-    <Card title="Diagnóstico">
+    <Card title={t().memory.diagnostics}>
       {#if checks.length === 0}
-        <p class="muted">Sem dados de módulos para analisar.</p>
+        <p class="muted">{t().memory.noModulesToCheck}</p>
       {:else}
         <ul class="checks">
           {#each checks as check}
@@ -139,9 +131,9 @@
       {/if}
     </Card>
 
-    <Card title="Módulos" span={3}>
+    <Card title={t().memory.modules} span={3}>
       {#if info.slots.length === 0}
-        <p class="muted">O sistema não informou os módulos instalados.</p>
+        <p class="muted">{t().memory.noModules}</p>
       {:else}
         <div class="slots">
           {#each info.slots as slot}
@@ -151,27 +143,27 @@
                 <span class="muted">{or(slot.locator)}</span>
               </div>
               {#if slot.size_bytes === 0}
-                <p class="muted">Slot vazio</p>
+                <p class="muted">{t().memory.emptySlot}</p>
               {:else}
                 <span class="slot-size num">{bytes(slot.size_bytes)}</span>
                 <dl>
-                  <dt>Tipo</dt><dd>{or(slot.kind)} {or(slot.form_factor)}</dd>
-                  <dt>Fabricante</dt><dd>{or(slot.manufacturer)}</dd>
-                  <dt>Modelo</dt><dd class="num">{or(slot.part_number)}</dd>
-                  <dt>Velocidade</dt>
+                  <dt>{t().memory.type}</dt><dd>{or(slot.kind)} {or(slot.form_factor)}</dd>
+                  <dt>{t().common.manufacturer}</dt><dd>{or(slot.manufacturer)}</dd>
+                  <dt>{t().common.model}</dt><dd class="num">{or(slot.part_number)}</dd>
+                  <dt>{t().common.speed}</dt>
                   <dd class="num">
                     {or(slot.configured_mts)} MT/s
-                    {#if slot.speed_mts && slot.speed_mts !== slot.configured_mts}<span class="muted">(nominal {slot.speed_mts})</span>{/if}
+                    {#if slot.speed_mts && slot.speed_mts !== slot.configured_mts}<span class="muted">{t().memory.nominal(slot.speed_mts)}</span>{/if}
                   </dd>
-                  <dt>Ranks</dt><dd class="num">{or(slot.rank)}</dd>
-                  <dt>Barramento</dt><dd class="num">{slot.data_width ? `${slot.data_width} bits` : "—"}</dd>
-                  <dt>Detalhe</dt><dd>{or(slot.detail)}</dd>
+                  <dt>{t().memory.ranks}</dt><dd class="num">{or(slot.rank)}</dd>
+                  <dt>{t().common.bus}</dt><dd class="num">{slot.data_width ? `${slot.data_width} bits` : "—"}</dd>
+                  <dt>{t().memory.detail}</dt><dd>{or(slot.detail)}</dd>
                 </dl>
               {/if}
             </div>
           {/each}
         </div>
-        <p class="hint muted">Timings detalhados e a tabela JEDEC estão na aba <a href="/spd">Módulos (SPD)</a>.</p>
+        <p class="hint muted">{t().memory.spdHint} <a href="/spd">{t().tabs.spd}</a>.</p>
       {/if}
     </Card>
   </div>

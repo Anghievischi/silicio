@@ -172,7 +172,7 @@ export interface Ddr4 {
   die_density_gbit: number;
   bank_groups: number;
   banks_per_group: number;
-  voltage: string;
+  voltage: number | null;
   module_manufacturer: string | null;
   dram_manufacturer: string | null;
   part_number: string | null;

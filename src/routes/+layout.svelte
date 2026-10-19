@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import Sidebar, { tabs } from "$lib/components/Sidebar.svelte";
+  import { i18n } from "$lib/i18n/index.svelte";
   import type { CpuInfo } from "$lib/types";
 
   let { children } = $props();
@@ -20,6 +21,7 @@
 
   // A cor de destaque de todas as abas acompanha o fabricante do processador.
   onMount(() => {
+    document.documentElement.lang = i18n.locale;
     invoke<CpuInfo>("cpu_info")
       .then((cpu) => (document.documentElement.dataset.vendor = cpu.vendor))
       .catch(() => {});

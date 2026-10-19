@@ -1,17 +1,20 @@
 <script lang="ts" module>
-  // As abas seguem as do CPU-Z.
-  export const tabs = [
-    { href: "/", label: "Processador", icon: "◧" },
-    { href: "/placa-mae", label: "Placa-mãe", icon: "▦" },
-    { href: "/memoria", label: "Memória", icon: "▤" },
-    { href: "/spd", label: "Módulos (SPD)", icon: "▥" },
-    { href: "/graficos", label: "Gráficos", icon: "◩" },
-    { href: "/benchmark", label: "Benchmark", icon: "◔" },
+  import type { Messages } from "$lib/i18n/pt-BR";
+
+  // As abas seguem as do CPU-Z; `key` aponta para o nome traduzido.
+  export const tabs: { href: string | null; key: keyof Messages["tabs"]; icon: string }[] = [
+    { href: "/", key: "cpu", icon: "◧" },
+    { href: "/placa-mae", key: "board", icon: "▦" },
+    { href: "/memoria", key: "memory", icon: "▤" },
+    { href: "/spd", key: "spd", icon: "▥" },
+    { href: "/graficos", key: "gpu", icon: "◩" },
+    { href: "/benchmark", key: "bench", icon: "◔" },
   ];
 </script>
 
 <script lang="ts">
   import { page } from "$app/state";
+  import { i18n, LOCALES, setLocale, t, type Locale } from "$lib/i18n/index.svelte";
 </script>
 
 <nav>
@@ -21,19 +24,31 @@
   </div>
 
   {#each tabs as tab, i}
+    {@const label = t().tabs[tab.key]}
     {#if tab.href}
-      <a class="tab" class:active={page.url.pathname === tab.href} href={tab.href} title="{tab.label} (Ctrl+{i + 1})">
+      <a class="tab" class:active={page.url.pathname === tab.href} href={tab.href} title="{label} (Ctrl+{i + 1})">
         <span class="icon">{tab.icon}</span>
-        <span class="label">{tab.label}</span>
+        <span class="label">{label}</span>
       </a>
     {:else}
-      <span class="tab disabled" title="{tab.label} (em breve)">
+      <span class="tab disabled" title="{label} ({t().common.soon})">
         <span class="icon">{tab.icon}</span>
-        <span class="label">{tab.label}</span>
-        <span class="soon">em breve</span>
+        <span class="label">{label}</span>
+        <span class="soon">{t().common.soon}</span>
       </span>
     {/if}
   {/each}
+
+  <label class="lang" title={t().common.language}>
+    <span class="icon">🌐</span>
+    <select
+      aria-label={t().common.language}
+      value={i18n.locale}
+      onchange={(e) => setLocale(e.currentTarget.value as Locale)}
+    >
+      {#each LOCALES as locale}<option value={locale.id}>{locale.label}</option>{/each}
+    </select>
+  </label>
 </nav>
 
 <style>
@@ -98,6 +113,27 @@
 
   .tab.disabled {
     color: var(--muted);
+  }
+
+  .lang {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding: 9px 10px;
+    color: var(--muted);
+  }
+
+  .lang select {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
   }
 
   .icon {

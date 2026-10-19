@@ -7,7 +7,7 @@ Thanks for helping! 🇧🇷 Contribuições em português também são bem-vind
 - **Report a bug.** Open a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml) and attach the output of `silicio --json`. Most hardware bugs can only be fixed with that report.
 - **Report missing or wrong hardware data.** A CPU without a codename, a memory vendor shown as a JEDEC code, a GPU with missing sensors: use the [hardware report](https://github.com/Anghievischi/silicio/issues/new?template=hardware_report.yml) template.
 - **Suggest a feature** with the [feature request](https://github.com/Anghievischi/silicio/issues/new?template=feature_request.yml) template.
-- **Translate the interface.** The UI is in Brazilian Portuguese; English and other languages are on the roadmap. Open an issue first so the string extraction can be planned together.
+- **Translate the interface.** Copy `src/lib/i18n/en.ts` to a new file (for example `es.ts`), translate the texts, and register it in `src/lib/i18n/index.svelte.ts` (`LOCALES` and `dictionaries`). TypeScript checks that no key is missing.
 - **Send a pull request.** Issues labeled `good first issue` are a good start.
 
 ## Development setup
@@ -36,7 +36,7 @@ Useful commands:
 
 ### Code
 
-- Match the style of the surrounding code. Rust is formatted with `cargo fmt`; comments and user-facing strings are in Brazilian Portuguese for now.
+- Match the style of the surrounding code. Rust is formatted with `cargo fmt`; code comments are in Brazilian Portuguese. User-facing text never goes in components: add it to `src/lib/i18n/pt-BR.ts` and `en.ts`, and have the backend return codes (like `"notebook"`) that the interface translates.
 - Keep platform code behind `#[cfg(target_os = "linux")]` / `#[cfg(windows)]` modules, with a fallback for other systems, as in `src-tauri/src/hw/`.
 - Hardware decoders need tests. Add a fixture under `src-tauri/tests/fixtures/` when possible, and **remove serial numbers** and other personal identifiers from dumps before committing.
 - New data shown in the UI must also appear in `--json`.

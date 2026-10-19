@@ -50,6 +50,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Relatório em JSON (`--json`) | Só TXT | ✅ |
 | Versão nativa para Linux | ❌ | ✅ |
 | Tema claro e escuro | ❌ | ✅ |
+| Interface em português e inglês, com troca ao vivo | Vários idiomas | ✅ |
 
 ¹ Lê registradores da CPU por um pequeno helper com root, iniciado via `pkexec`; o sistema pede sua senha uma vez.
 ² DDR5 é reconhecido, mas ainda não decodificado.
@@ -117,6 +118,7 @@ sudo modprobe spd5118    # DDR5
 ## Uso
 
 - **Ctrl+1** a **Ctrl+6** trocam de aba.
+- O idioma segue o do sistema; troque no rodapé da barra lateral.
 - **Copiar JSON**, na aba Processador, copia o relatório completo: útil para relatar bugs e pedir ajuda em fóruns.
 - No terminal, `silicio --json` imprime o relatório de todas as abas sem abrir janela (no Windows: `Silicio.exe --json > relatorio.json`).
 - `silicio --bench` roda o benchmark de CPU (5 s single-thread + 5 s multi-thread) e imprime as pontuações em JSON.
@@ -180,7 +182,8 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 - [x] Helper com root para MSR e SMBIOS no Linux
 - [ ] Decodificação de perfis XMP / EXPO e SPD DDR5
 - [ ] Leituras com privilégio no Windows com o driver PawnIO
-- [ ] Interface em inglês e traduções
+- [x] Interface em português e inglês
+- [ ] Mais traduções (contribuições são bem-vindas)
 - [ ] Card de specs para compartilhar, módulo para Waybar, exportação Prometheus/MQTT, alertas de temperatura
 - [ ] Comparação de benchmark online
 

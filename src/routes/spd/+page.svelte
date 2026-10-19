@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import Card from "$lib/components/Card.svelte";
   import { or } from "$lib/format";
+  import { t } from "$lib/i18n/index.svelte";
   import type { SpdModule } from "$lib/types";
 
   let modules = $state<SpdModule[] | null>(null);
@@ -24,22 +25,18 @@
 </script>
 
 {#if error}
-  <p class="error">Não foi possível ler o SPD: {error}</p>
+  <p class="error">{t().spd.error}: {error}</p>
 {:else if !modules}
-  <p class="muted">Lendo os módulos…</p>
+  <p class="muted">{t().spd.loading}</p>
 {:else if modules.length === 0}
   <header>
     <div>
-      <h1>Módulos (SPD)</h1>
-      <p class="muted">Nenhum EEPROM SPD disponível.</p>
+      <h1>{t().tabs.spd}</h1>
+      <p class="muted">{t().spd.none}</p>
     </div>
   </header>
-  <Card title="Como habilitar">
-    <p>
-      O Linux expõe o SPD pelos drivers <code>ee1004</code> (DDR4) e <code>spd5118</code> (DDR5). Em alguns sistemas é
-      preciso carregar o driver do SMBus (<code>i2c-piix4</code> na AMD, <code>i2c-i801</code> na Intel). Notebooks às
-      vezes bloqueiam o acesso no firmware.
-    </p>
+  <Card title={t().spd.howTo}>
+    <p>{t().spd.howToText}</p>
   </Card>
 {:else}
   <header>
@@ -58,60 +55,60 @@
   </header>
 
   {#if !d}
-    <Card title="Módulo">
-      <p class="muted">A decodificação de módulos {current?.kind} ainda não foi implementada.</p>
+    <Card title={t().spd.module}>
+      <p class="muted">{t().spd.notDecoded(current?.kind ?? "")}</p>
     </Card>
   {:else}
     <div class="stats">
       <div class="stat">
-        <span class="muted">Velocidade máxima</span>
+        <span class="muted">{t().spd.maxSpeed}</span>
         <strong class="num">{d.max_speed_mts} MT/s</strong>
       </div>
       <div class="stat">
-        <span class="muted">Largura de banda</span>
+        <span class="muted">{t().spd.bandwidth}</span>
         <strong class="num">{bandwidth(d.max_speed_mts, d.bus_width)}</strong>
       </div>
       <div class="stat">
-        <span class="muted">Timings</span>
+        <span class="muted">{t().spd.timings}</span>
         <strong class="num">{d.table[0] ? `${d.table[0].cl}-${d.table[0].trcd}-${d.table[0].trp}-${d.table[0].tras}` : "—"}</strong>
       </div>
       <div class="stat">
-        <span class="muted">Tensão</span>
-        <strong class="num">{d.voltage}</strong>
+        <span class="muted">{t().common.voltage}</span>
+        <strong class="num">{d.voltage != null ? `${d.voltage.toFixed(2)} V` : "—"}</strong>
       </div>
       <div class="stat">
-        <span class="muted">XMP / EXPO</span>
-        <strong>{d.xmp ? `XMP ${d.xmp.version} · ${d.xmp.profiles} perfil(is)` : "Não"}</strong>
+        <span class="muted">{t().spd.xmp}</span>
+        <strong>{d.xmp ? t().spd.xmpProfiles(d.xmp.version, d.xmp.profiles) : t().spd.no}</strong>
       </div>
     </div>
 
     <div class="grid">
-      <Card title="Módulo">
+      <Card title={t().spd.module}>
         <dl>
-          <dt>Fabricante</dt><dd>{or(d.module_manufacturer)}</dd>
-          <dt>Chips DRAM</dt><dd>{or(d.dram_manufacturer)}</dd>
-          <dt>Modelo</dt><dd class="num">{or(d.part_number)}</dd>
-          <dt>Fabricação</dt><dd class="num">{d.manufactured ? `semana ${d.manufactured[1]} de ${d.manufactured[0]}` : "—"}</dd>
-          <dt>Revisão SPD</dt><dd class="num">{d.spd_revision}</dd>
-          <dt>Integridade</dt>
-          <dd><span class="badge" class:bad={!d.crc_ok}>{d.crc_ok ? "CRC OK" : "CRC inválido"}</span></dd>
+          <dt>{t().common.manufacturer}</dt><dd>{or(d.module_manufacturer)}</dd>
+          <dt>{t().spd.dramChips}</dt><dd>{or(d.dram_manufacturer)}</dd>
+          <dt>{t().common.model}</dt><dd class="num">{or(d.part_number)}</dd>
+          <dt>{t().spd.manufactured}</dt><dd class="num">{d.manufactured ? t().spd.week(d.manufactured[1], d.manufactured[0]) : "—"}</dd>
+          <dt>{t().spd.spdRevision}</dt><dd class="num">{d.spd_revision}</dd>
+          <dt>{t().spd.integrity}</dt>
+          <dd><span class="badge" class:bad={!d.crc_ok}>{d.crc_ok ? t().spd.crcOk : t().spd.crcBad}</span></dd>
         </dl>
       </Card>
 
-      <Card title="Organização">
+      <Card title={t().spd.organization}>
         <dl>
-          <dt>Tamanho</dt><dd class="num">{d.size_mb / 1024} GB</dd>
-          <dt>Ranks</dt><dd class="num">{d.ranks}</dd>
-          <dt>Chips</dt><dd class="num">x{d.device_width} · {d.die_density_gbit} Gb</dd>
-          <dt>Barramento</dt><dd class="num">{d.bus_width} bits</dd>
-          <dt>Bancos</dt><dd class="num">{d.bank_groups} grupos × {d.banks_per_group}</dd>
+          <dt>{t().spd.size}</dt><dd class="num">{d.size_mb / 1024} GB</dd>
+          <dt>{t().spd.ranks}</dt><dd class="num">{d.ranks}</dd>
+          <dt>{t().spd.chips}</dt><dd class="num">x{d.device_width} · {d.die_density_gbit} Gb</dd>
+          <dt>{t().common.bus}</dt><dd class="num">{d.bus_width} bits</dd>
+          <dt>{t().spd.banks}</dt><dd class="num">{t().spd.bankGroups(d.bank_groups, d.banks_per_group)}</dd>
           <dt>Slot</dt><dd class="num">{current?.slot} <span class="muted">(I²C {current?.address})</span></dd>
         </dl>
       </Card>
 
-      <Card title="Timings mínimos">
+      <Card title={t().spd.minTimings}>
         <dl>
-          <dt>tCK mín.</dt><dd class="num">{ns(d.timings_ns.tck_min)}</dd>
+          <dt>{t().spd.tckMin}</dt><dd class="num">{ns(d.timings_ns.tck_min)}</dd>
           <dt>tAA (CAS)</dt><dd class="num">{ns(d.timings_ns.taa)}</dd>
           <dt>tRCD</dt><dd class="num">{ns(d.timings_ns.trcd)}</dd>
           <dt>tRP</dt><dd class="num">{ns(d.timings_ns.trp)}</dd>
@@ -121,13 +118,13 @@
         </dl>
       </Card>
 
-      <Card title="Tabela de timings JEDEC" span={3}>
+      <Card title={t().spd.jedecTable} span={3}>
         <div class="table-wrap">
           <table class="timings">
             <thead>
               <tr>
-                <th>Velocidade</th>
-                <th>Clock</th>
+                <th>{t().common.speed}</th>
+                <th>{t().spd.clock}</th>
                 <th>CL</th>
                 <th>tRCD</th>
                 <th>tRP</th>
@@ -150,9 +147,7 @@
             </tbody>
           </table>
         </div>
-        <p class="hint muted">
-          CAS suportadas: {d.cas_supported.join(", ")}. Ciclos calculados com o arredondamento da JEDEC.
-        </p>
+        <p class="hint muted">{t().spd.casHint(d.cas_supported.join(", "))}</p>
       </Card>
     </div>
   {/if}
@@ -212,12 +207,5 @@
   .hint {
     margin: 12px 0 0;
     font-size: 11px;
-  }
-
-  code {
-    font-size: 12px;
-    padding: 1px 5px;
-    border-radius: 5px;
-    background: var(--surface-2);
   }
 </style>

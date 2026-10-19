@@ -19,9 +19,6 @@ Processor, motherboard, memory, SPD and graphics card, with live data and a clea
 
 </div>
 
-> [!NOTE]
-> The interface is currently in Brazilian Portuguese. Translations are welcome; see [Contributing](#contributing).
-
 ## Download
 
 | System | Direct download |
@@ -53,6 +50,7 @@ These links always point to the latest version. Older versions are on the [relea
 | JSON report (`--json`) | TXT only | ✅ |
 | Native Linux version | ❌ | ✅ |
 | Light and dark theme | ❌ | ✅ |
+| Interface in English and Portuguese, switchable live | Several languages | ✅ |
 
 ¹ Reads model-specific registers through a small root helper started with `pkexec`; the system asks for your password once.
 ² DDR5 is detected but not decoded yet.
@@ -120,6 +118,7 @@ sudo modprobe spd5118    # DDR5
 ## Usage
 
 - **Ctrl+1** to **Ctrl+6** switch between tabs.
+- The language follows your system; change it at the bottom of the sidebar.
 - **Copy JSON** on the Processor tab copies the full report, handy for bug reports and forums.
 - From a terminal, `silicio --json` prints the report for every tab without opening a window (on Windows: `Silicio.exe --json > report.json`).
 - `silicio --bench` runs the CPU benchmark (5 s single-thread + 5 s multi-thread) and prints the scores as JSON.
@@ -209,7 +208,8 @@ docs/                         CPU-Z analysis and screenshots
 - [x] Root helper for MSR and SMBIOS on Linux
 - [ ] XMP / EXPO profile decoding and DDR5 SPD
 - [ ] Privileged readings on Windows with the PawnIO driver
-- [ ] English interface and translations
+- [x] English and Portuguese interface
+- [ ] More translations (contributions welcome)
 - [ ] Shareable specs card, Waybar module, Prometheus/MQTT export, temperature alerts
 - [ ] Online benchmark comparison
 
