@@ -1,0 +1,55 @@
+name: Bug report / Relatar bug
+description: Something is wrong or crashes. / Algo está errado ou trava.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! English or Portuguese are both fine. / Pode escrever em português.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / O que aconteceu?
+      description: What did you expect, and what did you see instead? Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Como reproduzir
+      placeholder: |
+        1. Open the Memory tab
+        2. ...
+  - type: input
+    id: version
+    attributes:
+      label: Silício version / Versão
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / Sistema
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux (.deb)
+        - Linux (.rpm)
+        - Linux (AppImage)
+        - Linux (built from source)
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and kernel (Linux) / Distribuição e kernel
+      placeholder: "Ubuntu 24.04, kernel 6.8"
+  - type: textarea
+    id: report
+    attributes:
+      label: Hardware report / Relatório do hardware
+      description: |
+        Output of `silicio --json` (Windows: `Silicio.exe --json > report.json`), or "Copiar JSON" on the Processor tab.
+        It contains no serial numbers.
+      render: json

@@ -1,55 +1,101 @@
+<div align="center">
+
+<img src="packaging/icon/silicio.png" width="112" alt="Silício logo">
+
 # Silício
 
-Informações do seu hardware com visual moderno: uma alternativa ao CPU-Z para
-Linux e Windows, com dados ao vivo e integrações.
+**A modern, open-source alternative to CPU-Z for Linux and Windows.**
+Processor, motherboard, memory, SPD and graphics card, with live data and a clean interface.
 
-Feito com **Tauri 2** (backend em Rust) e **Svelte 5** (interface).
+[![Latest release](https://img.shields.io/github/v/release/Anghievischi/silicio?color=7c8cff)](https://github.com/Anghievischi/silicio/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Anghievischi/silicio/total?color=7c8cff)](https://github.com/Anghievischi/silicio/releases)
+[![CI](https://github.com/Anghievischi/silicio/actions/workflows/ci.yml/badge.svg)](https://github.com/Anghievischi/silicio/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Anghievischi/silicio)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows-informational)
 
-![Ícone do Silício](packaging/icon/silicio.png)
+[Download](#download) · [Features](#features) · [Installation](#installation) · [Building](#building-from-source) · [Contributing](#contributing) · 🇧🇷 [Leia em português](README.pt-BR.md)
+
+<img src="docs/screenshots/processador.png" alt="Silício showing the Processor tab" width="860">
+
+</div>
+
+> [!NOTE]
+> The interface is currently in Brazilian Portuguese. Translations are welcome; see [Contributing](#contributing).
 
 ## Download
 
-| Sistema | Download direto |
-|---------|-----------------|
-| **Windows 10/11** — instalador | [⬇ Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe) |
-| **Windows 10/11** — portátil, sem instalar | [⬇ Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe) |
-| **Windows** — MSI (empresas) | [⬇ Silicio.msi](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio.msi) |
+| System | Direct download |
+|--------|-----------------|
+| **Windows 10/11**: installer | [⬇ Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe) |
+| **Windows 10/11**: portable, no install | [⬇ Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe) |
+| **Windows**: MSI (managed deployment) | [⬇ Silicio.msi](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio.msi) |
 | **Ubuntu, Debian, Mint, Pop!_OS** | [⬇ Silicio-amd64.deb](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-amd64.deb) |
 | **Fedora, openSUSE** | [⬇ Silicio-x86_64.rpm](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.rpm) |
-| **Qualquer Linux** — AppImage | [⬇ Silicio-x86_64.AppImage](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.AppImage) |
+| **Any Linux**: AppImage | [⬇ Silicio-x86_64.AppImage](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.AppImage) |
 
-Os links sempre apontam para a versão mais recente. Versões anteriores estão
-na [página de releases](https://github.com/Anghievischi/silicio/releases).
+These links always point to the latest version. Older versions are on the [releases page](https://github.com/Anghievischi/silicio/releases).
 
-## Instalação
+## Features
 
-### Windows 10 e 11
+| | CPU-Z | Silício |
+|---|:---:|:---:|
+| CPU name, codename, process, family/model/stepping, instructions, caches | ✅ | ✅ |
+| Live clock per thread, with history chart | Clocks window | ✅ |
+| CPU temperature and load per thread | ❌ | ✅ |
+| Core voltage, real bus clock, socket | ✅ | ✅ Linux ¹ |
+| Motherboard, BIOS, chipset, PCIe link of each GPU | ✅ | ✅ |
+| Memory type, channels, frequency, installed modules | ✅ | ✅ |
+| Memory diagnostics (single channel, XMP disabled, mixed kits) | ❌ | ✅ |
+| SPD: manufacturer, part number, date, JEDEC timings table | ✅ | ✅ DDR4 ² |
+| XMP / EXPO profiles | ✅ | Detection only |
+| Graphics: clocks, load, temperature, power, VRAM | ✅ | ✅ |
+| JSON report (`--json`) | TXT only | ✅ |
+| Native Linux version | ❌ | ✅ |
+| Light and dark theme | ❌ | ✅ |
 
-Baixe o **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe)**, abra e siga os passos.
-Se preferir não instalar, use o **[Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe)**:
-é só abrir.
+¹ Reads model-specific registers through a small root helper started with `pkexec`; the system asks for your password once.
+² DDR5 is detected but not decoded yet.
 
-O app ainda não tem assinatura digital, então o Windows SmartScreen pode avisar
-"O Windows protegeu o computador". Clique em **Mais informações** → **Executar
-assim mesmo**. O Windows 10/11 já traz o WebView2 que o app usa; se faltar, o
-instalador baixa sozinho.
+<details>
+<summary><b>More screenshots</b></summary>
+
+| Memory | SPD |
+|---|---|
+| <img src="docs/screenshots/memoria.png" alt="Memory tab"> | <img src="docs/screenshots/spd.png" alt="SPD tab"> |
+| **Graphics** | **Motherboard** |
+| <img src="docs/screenshots/graficos.png" alt="Graphics tab"> | <img src="docs/screenshots/placa-mae.png" alt="Motherboard tab"> |
+| **Light theme** | |
+| <img src="docs/screenshots/processador-claro.png" alt="Processor tab, light theme"> | |
+
+</details>
+
+## Installation
+
+### Windows 10 and 11
+
+Download **[Silicio-setup.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-setup.exe)**, open it and follow the steps, or run **[Silicio-portable.exe](https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-portable.exe)** without installing.
+
+> [!IMPORTANT]
+> Releases are not code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Click **More info** → **Run anyway**.
+
+Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
 
 ### Linux
 
-**Ubuntu, Debian, Mint, Pop!_OS** (`.deb`):
+**Ubuntu, Debian, Mint, Pop!_OS**
 
 ```bash
 wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-amd64.deb
 sudo apt install ./Silicio-amd64.deb
 ```
 
-**Fedora, openSUSE** (`.rpm`):
+**Fedora, openSUSE**
 
 ```bash
 sudo dnf install https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.rpm
 ```
 
-**Qualquer distribuição** (AppImage, sem instalar):
+**Any distribution (AppImage)**
 
 ```bash
 wget https://github.com/Anghievischi/silicio/releases/latest/download/Silicio-x86_64.AppImage
@@ -57,174 +103,128 @@ chmod +x Silicio-x86_64.AppImage
 ./Silicio-x86_64.AppImage
 ```
 
-**Arch Linux**: use o AppImage acima ou compile a partir do código (seção
-[Rodando](#rodando)). O `.deb` também pode ser convertido com o `debtap`.
+**Arch Linux**: use the AppImage, convert the `.deb` with `debtap`, or [build from source](#building-from-source).
 
-Depois de instalado, o Silício aparece no menu de aplicativos. Os pacotes `.deb`
-e `.rpm` incluem o helper das leituras avançadas e a regra do polkit; o
-AppImage não inclui, então soquete, tensão e bus real não aparecem nele.
+The `.deb` and `.rpm` packages include the root helper and its polkit rule. The AppImage does not, so socket, voltage and real bus clock are not shown there.
 
-Para ver os módulos de memória na aba SPD, o driver do SPD precisa estar
-carregado. Na maioria das distribuições isso é automático; se a aba ficar
-vazia, tente:
+If the **SPD** tab is empty, load the SPD EEPROM driver for your memory type:
 
 ```bash
-sudo modprobe ee1004      # DDR4
-sudo modprobe spd5118     # DDR5
+sudo modprobe ee1004     # DDR4
+sudo modprobe spd5118    # DDR5
 ```
 
-## O que já funciona
+## Usage
 
-Aba **Processador**:
+- **Ctrl+1** to **Ctrl+5** switch between tabs.
+- **Copy JSON** on the Processor tab copies the full report, handy for bug reports and forums.
+- From a terminal, `silicio --json` prints the report for every tab without opening a window (on Windows: `Silicio.exe --json > report.json`).
 
-- nome, fabricante, codinome, microarquitetura e processo de fabricação;
-- família, modelo, stepping e microcódigo;
-- clock médio e pico ao vivo, com gráfico dos últimos 60 segundos;
-- mapa de núcleos com clock e uso por thread;
-- temperatura do pacote;
-- caches L1/L2/L3 com associatividade;
-- instruções suportadas, agrupadas por categoria;
-- multiplicador estimado (bus nominal de 100 MHz);
-- botão para copiar o relatório em JSON.
+## How it works
 
-Aba **Placa-mãe**:
+Silício reads hardware information through public interfaces only:
 
-- fabricante, produto, família e tipo de chassi;
-- modelo e revisão da placa, versão e data do BIOS;
-- chipset e southbridge identificados pela base `pci.ids`;
-- link PCIe de cada adaptador de vídeo (atual × máximo), com alerta de largura reduzida.
+| Data | Linux | Windows |
+|------|-------|---------|
+| CPU identification, caches, instructions | `CPUID` instruction | `CPUID` instruction |
+| Clocks, load, RAM usage | `sysinfo` (cpufreq) | `sysinfo` |
+| Temperatures, GPU sensors | hwmon (`k10temp`, `coretemp`, `amdgpu`) | NVML (NVIDIA) |
+| Motherboard, BIOS, memory modules | DMI in sysfs, SMBIOS decoded by udev | WMI |
+| Chipset, PCIe links | `/sys/bus/pci` + `pci.ids` | planned |
+| SPD EEPROM | `ee1004` / `spd5118` drivers | planned (PawnIO) |
+| Voltage, real bus clock, socket | MSR + raw SMBIOS through the root helper | planned (PawnIO) |
+| Graphics | `amdgpu`, `i915`, `xe` sysfs + NVML | WMI + NVML |
 
-Aba **Memória**:
+Codenames, JEDEC tables and memory vendor IDs come from public documentation and are written from scratch.
 
-- total instalado, tipo, canais, velocidade e clock real da DRAM;
-- uso de RAM e swap ao vivo;
-- cada módulo: slot, canal, fabricante (decodificado pelo código JEDEC), modelo, velocidade, ranks;
-- diagnóstico: single channel, módulos abaixo da velocidade nominal (XMP/EXPO desligado) e kits diferentes.
+## Reverse engineering notes
 
-Aba **Módulos (SPD)**, lida direto do EEPROM de cada pente:
+Silício is a **clean-room reimplementation**. CPU-Z was studied only to list *which* information it shows; no CPU-Z code, data table or image is used.
 
-- tipo, tamanho, velocidade máxima, largura de banda, tensão, ranks e organização dos chips;
-- fabricante do módulo e dos chips, modelo, semana/ano de fabricação, checagem de CRC;
-- timings mínimos em ns e tabela de timings nas velocidades JEDEC (CL-tRCD-tRP-tRAS-tRC);
-- detecção de XMP. Por enquanto só DDR4; DDR5 é reconhecido mas não decodificado.
+- **Source:** `cpuz_x64.exe` from CPU-Z 3.01 (SHA-256 `a01369043c9e199747d62b950fb6db3f793ea74feb9c667ae291988405905fbe`).
+- **Tools used:** REA, a reverse-engineering toolkit, for static analysis only: PE resource tree, dialog templates and embedded files. The program was never executed and its code was not decompiled.
+- **What was done:** every tab, field and auxiliary window was inventoried from the dialog resources, and the three embedded kernel drivers were identified. The full inventory and a CPU-Z ↔ Silício coverage table are in [`docs/analise-cpu-z.md`](docs/analise-cpu-z.md).
+- **Verification:** the SPD decoder is tested against `decode-dimms` (i2c-tools) on real modules.
 
-Aba **Gráficos**:
+## Building from source
 
-- nome, fabricante, integrada ou dedicada, driver, BIOS de vídeo e link PCIe;
-- clock do núcleo e da memória, uso, temperatura, consumo, tensão e ventoinha ao vivo;
-- VRAM total, compartilhada e em uso.
-- AMD e Intel pelo driver do Linux; NVIDIA pela NVML (Linux e Windows).
-
-**Leituras avançadas** (botão "Desbloquear" na aba Processador): soquete, tensão do
-núcleo (VID), bus real medido e multiplicador real. Precisam de root, então o app
-roda o `silicio-helper` via `pkexec` e o sistema pede a senha uma vez.
-
-Atalhos: **Ctrl+1** a **Ctrl+5** trocam de aba.
-
-A cor de destaque acompanha o fabricante (vermelho para AMD, azul para Intel) e
-o tema segue o modo claro/escuro do sistema.
-
-## Rodando
-
-Requisitos: Rust, Node e pnpm. No Linux, também `webkit2gtk-4.1`.
+Requirements: [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) 20+ and [pnpm](https://pnpm.io). On Linux also `webkit2gtk-4.1`; see the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
+git clone https://github.com/Anghievischi/silicio.git
+cd silicio
 pnpm install
-pnpm tauri dev      # abre o app em modo de desenvolvimento
-pnpm tauri build    # gera os pacotes de instalação
+pnpm tauri dev          # run in development mode
+pnpm tauri build        # build installers into src-tauri/target/release/bundle
 ```
 
-Relatório em JSON sem abrir a janela:
+Tests and checks:
 
 ```bash
-cd src-tauri && cargo run -- --json
+pnpm check
+cd src-tauri && cargo test && cargo clippy --all-targets
 ```
 
-Helper com privilégio, direto no terminal:
+To try the root helper during development:
 
 ```bash
 cd src-tauri && cargo build && pkexec "$PWD/target/debug/silicio-helper" | jq
 ```
 
-Testes do backend:
-
-```bash
-cd src-tauri && cargo test
-```
-
-## Estrutura
+<details>
+<summary><b>Project structure</b></summary>
 
 ```
-src/                         interface (SvelteKit em modo SPA)
-  routes/+page.svelte        aba Processador
-  routes/placa-mae/          aba Placa-mãe
-  routes/memoria/            aba Memória
-  routes/spd/                aba Módulos (SPD)
-  routes/graficos/           aba Gráficos
-  lib/privileged.svelte.ts   estado das leituras com privilégio
-  lib/components/            Sidebar, Card, Sparkline
-  lib/types.ts               tipos espelhando as structs do Rust
+src/                          interface (SvelteKit SPA)
+  routes/                     one folder per tab
+  lib/components/             Sidebar, Card, Sparkline
+  lib/types.ts                types mirroring the Rust structs
 src-tauri/src/
-  lib.rs                     comandos Tauri (cpu_*, board_info, memory_*) e modo --json
-  hw/cpu.rs                  leitura do processador (CPUID, sysfs, sysinfo)
-  hw/codenames.rs            banco próprio de codinomes Intel/AMD
-  hw/board.rs                sistema, placa-mãe, BIOS, chipset
-  hw/memory.rs               RAM, módulos (SMBIOS via udev), diagnóstico
-  hw/pci.rs                  dispositivos PCI, nomes e links PCIe
-  hw/gpu.rs                  placas de vídeo (sysfs, NVML, WMI)
-  hw/wmi.rs                  consultas WMI no Windows
-  hw/spd.rs                  decodificador de SPD DDR4 (JEDEC 21-C)
-  hw/privileged.rs           MSR e SMBIOS bruto (só no helper)
-  bin/silicio-helper.rs      helper executado como root via pkexec
-  tests/fixtures/            SPD real usado nos testes (serial zerado)
-packaging/linux/             política do polkit para o helper
-docs/analise-cpu-z.md        levantamento de funcionalidades do CPU-Z
+  lib.rs                      Tauri commands and --json mode
+  hw/cpu.rs                   processor (CPUID, sysfs, sysinfo)
+  hw/codenames.rs             Intel/AMD codename table
+  hw/board.rs                 system, motherboard, BIOS, chipset
+  hw/memory.rs                RAM and modules
+  hw/spd.rs                   DDR4 SPD decoder (JEDEC 21-C)
+  hw/gpu.rs                   graphics (sysfs, NVML, WMI)
+  hw/pci.rs                   PCI devices and PCIe links
+  hw/privileged.rs            MSR and raw SMBIOS (helper only)
+  hw/wmi.rs                   WMI queries (Windows)
+  bin/silicio-helper.rs       root helper, started with pkexec
+src-tauri/tests/fixtures/     real SPD dump used by the tests
+packaging/                    icon and polkit policy
+docs/                         CPU-Z analysis and screenshots
 ```
 
-## Fontes dos dados
+</details>
 
-| Dado | Linux | Windows |
-|------|-------|---------|
-| Nome, assinatura, cache, instruções | CPUID (`raw-cpuid`) | CPUID (`raw-cpuid`) |
-| Clock e uso por thread | `sysinfo` (cpufreq) | `sysinfo` |
-| Faixa de clock, driver, governor | `/sys/devices/system/cpu/cpu0/cpufreq` | pendente |
-| Topologia | `/sys/.../topology/core_id` | threads irmãs em sequência |
-| Microcódigo | `/proc/cpuinfo` | pendente (registro) |
-| Temperatura | hwmon (`k10temp`, `coretemp`) | pendente (PawnIO) |
-| Sistema e placa-mãe | `sysinfo` (DMI) | `sysinfo` (SMBIOS) |
-| BIOS e chassi | `/sys/class/dmi/id` | WMI (`Win32_BIOS`) |
-| Chipset e PCIe | `/sys/bus/pci/devices` + `pci.ids` | pendente |
-| Módulos de memória | udev (`/run/udev/data/+dmi:id`), sem root | WMI (`Win32_PhysicalMemory`) |
-| Uso de RAM e swap | `sysinfo` | `sysinfo` |
-| SPD dos módulos | `ee1004`/`spd5118` no sysfs, sem root | pendente (PawnIO) |
-| Tensão, bus, multiplicador | MSR via helper (`pkexec`) | pendente (PawnIO) |
-| Soquete, clock externo | SMBIOS tipo 4 via helper | pendente |
-| Placa de vídeo | sysfs (`amdgpu`, `i915`, `xe`) + NVML | WMI + NVML |
+## Roadmap
 
-## Roteiro
+- [x] Processor, motherboard, memory, SPD (DDR4) and graphics tabs
+- [x] Root helper for MSR and SMBIOS on Linux
+- [ ] XMP / EXPO profile decoding and DDR5 SPD
+- [ ] Privileged readings on Windows with the PawnIO driver
+- [ ] English interface and translations
+- [ ] Shareable specs card, Waybar module, Prometheus/MQTT export, temperature alerts
+- [ ] Benchmark with online comparison
 
-1. **Memória avançada**: perfis XMP/EXPO decodificados, SPD DDR5, timings atuais do
-   controlador de memória (registradores do UMC na AMD).
-2. **Gráficos no Windows**: clocks e uso de AMD e Intel (APIs dos fabricantes).
-3. **Windows**: leituras privilegiadas com o driver PawnIO.
-4. **Integrações**: card de specs para compartilhar, módulo para Waybar,
-   exportação para Prometheus/MQTT, alertas de temperatura.
-5. **Benchmark** com ranking online.
+Ideas and votes are welcome in [issues](https://github.com/Anghievischi/silicio/issues).
 
-## Publicando uma versão
+## Contributing
 
-O workflow `.github/workflows/release.yml` gera os instaladores de Windows e
-Linux e publica a release quando uma tag é enviada:
+Contributions of every size help: a bug report with your `silicio --json` output, a missing CPU codename, a translation or a pull request. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started and follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security issue, see [SECURITY.md](SECURITY.md).
 
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
+## Similar projects
 
-## Aviso legal
+| Project | Platform | Notes |
+|---------|----------|-------|
+| [CPU-Z](https://www.cpuid.com/softwares/cpu-z.html) | Windows, Android | The original, freeware |
+| [CPU-X](https://github.com/TheTumultuousUnicornOfDarkness/CPU-X) | Linux, FreeBSD | CPU-Z-like, no longer maintained |
+| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | Windows | Sensors and monitoring |
+| [HWiNFO](https://www.hwinfo.com) | Windows | Detailed sensors, freeware |
 
-O Silício é uma implementação independente. O levantamento em
-`docs/analise-cpu-z.md` registra apenas quais informações o CPU-Z exibe; nenhum
-código, tabela ou imagem dele foi copiado. CPU-Z é marca da CPUID.
+## License
 
-Licença MIT; veja [LICENSE](LICENSE).
+Silício is free software under the [MIT License](LICENSE).
 
+**Disclaimer:** Silício is not affiliated with or endorsed by CPUID. CPU-Z is a trademark of CPUID. Other product names are trademarks of their respective owners.

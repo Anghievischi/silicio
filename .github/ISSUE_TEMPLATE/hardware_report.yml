@@ -1,0 +1,31 @@
+name: Missing or wrong hardware data / Dado de hardware faltando ou errado
+description: A CPU without codename, an unknown memory vendor, a missing sensor... / CPU sem codinome, fabricante desconhecido, sensor faltando...
+labels: ["hardware-data"]
+body:
+  - type: input
+    id: component
+    attributes:
+      label: Component / Componente
+      placeholder: "AMD Ryzen 5 9600X, Kingston KF560C36-16, NVIDIA RTX 4060..."
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is missing or wrong? / O que falta ou está errado?
+      placeholder: "Codename shows only 'Família 0x1A · Modelo 0x44'; it should be Granite Ridge."
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Public source for the correct value / Fonte pública do valor correto
+      description: Datasheet, manufacturer page, kernel source... (no data copied from proprietary tools, please)
+  - type: textarea
+    id: report
+    attributes:
+      label: Hardware report / Relatório do hardware
+      description: Output of `silicio --json`.
+      render: json
+    validations:
+      required: true

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue / Falha de segurança
+    url: https://github.com/Anghievischi/silicio/security/advisories/new
+    about: Report vulnerabilities privately. / Relate vulnerabilidades de forma privada.

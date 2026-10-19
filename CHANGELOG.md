@@ -1,0 +1,26 @@
+# Changelog
+
+All notable changes to this project are documented here.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [0.1.0]
+
+First public version.
+
+### Added
+
+- **Processor** tab: name, codename, microarchitecture, process, signature, microcode, caches, instructions, topology, live clock and load per thread, temperature.
+- **Motherboard** tab: system, board, BIOS, chipset, southbridge and PCIe link of each graphics adapter.
+- **Memory** tab: type, channels, speed, installed modules, live usage and diagnostics (single channel, XMP disabled, mixed kits).
+- **SPD** tab: DDR4 decoder with manufacturer, part number, manufacturing date, organization, minimum timings and JEDEC timings table, verified against `decode-dimms`.
+- **Graphics** tab: AMD and Intel through Linux sysfs, NVIDIA through NVML; clocks, load, temperature, power and VRAM.
+- Root helper (`silicio-helper`) started with `pkexec` for socket, core voltage and real bus clock on Linux.
+- Windows support through WMI for BIOS, memory modules and graphics adapters.
+- `--json` report, light and dark theme, Ctrl+1…5 shortcuts.
+- Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
+- Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
+
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Anghievischi/silicio/releases/tag/v0.1.0

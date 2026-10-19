@@ -40,6 +40,8 @@ jobs:
           workspaces: src-tauri -> target
 
       - run: pnpm install --frozen-lockfile
+      # O Tauri exige a pasta do front compilado para compilar o Rust.
+      - run: pnpm build
 
       - name: Testes do backend
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib
