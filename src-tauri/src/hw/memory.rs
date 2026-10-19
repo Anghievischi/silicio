@@ -94,6 +94,8 @@ fn channel_of(slot: &Slot) -> Option<&str> {
         })
 }
 
+// Usado só pelo Linux (udev e SPD).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 /// Fabricantes de módulo pelo código JEDEC JEP106 (banco, código com paridade).
 pub(super) fn jedec_vendor(bank: u8, code: u8) -> Option<&'static str> {
     Some(match (bank, code) {
@@ -111,6 +113,8 @@ pub(super) fn jedec_vendor(bank: u8, code: u8) -> Option<&'static str> {
     })
 }
 
+// Usado só pelo Linux (udev e SPD).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 /// Lê o formato do udev: "Bank 2, Hex 0x94".
 fn decode_manufacturer_id(raw: &str) -> Option<&'static str> {
     let (bank, hex) = raw.split_once(',')?;
@@ -135,6 +139,8 @@ fn useful(value: &str) -> Option<String> {
     (!junk).then(|| v.to_string())
 }
 
+// Usado só pelo Linux (udev e SPD).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 /// Monta os slots a partir das chaves MEMORY_DEVICE_<n>_<CAMPO>=valor.
 fn parse_udev(text: &str) -> (Vec<Slot>, Option<u64>) {
     let mut fields: BTreeMap<u32, BTreeMap<&str, &str>> = BTreeMap::new();

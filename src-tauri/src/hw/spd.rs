@@ -4,6 +4,10 @@
 //! `/sys/bus/i2c/devices/<barramento>-<endereço>/eeprom`, legível sem root.
 //! O layout segue a JEDEC 21-C, anexo L (DDR4 SPD, revisão 1.1).
 
+// O decodificador não depende de plataforma, mas por enquanto só o Linux lê o
+// EEPROM; no Windows ele será usado junto com o driver PawnIO.
+#![cfg_attr(not(target_os = "linux"), allow(dead_code))]
+
 use super::memory::jedec_vendor;
 use serde::Serialize;
 

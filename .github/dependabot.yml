@@ -5,8 +5,10 @@ updates:
     schedule:
       interval: monthly
     groups:
+      # Minor e patch juntos; versões major vêm em PRs separados, pois costumam exigir migração.
       rust:
         patterns: ["*"]
+        update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -14,6 +16,7 @@ updates:
     groups:
       js:
         patterns: ["*"]
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
