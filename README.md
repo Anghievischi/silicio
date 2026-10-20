@@ -50,6 +50,11 @@ These links always point to the latest version. Older versions are on the [relea
 | Graphics: clocks, load, temperature, power, VRAM | ✅ | ✅ |
 | CPU benchmark (single/multi thread) and stress test with throttling detection | ✅ | ✅ |
 | Full report export: readable HTML page, Markdown for forums, raw JSON | TXT only | ✅ |
+| Shareable specs card (PNG, dark or light) with benchmark score | Online validation | ✅ |
+| Displays: model, panel, size, native resolution, refresh range, HDR, manufacture date (EDID) | ❌ | ✅ |
+| USB and Bluetooth devices with speed, power and function; peripheral batteries (Linux) | ❌ | ✅ |
+| Audio devices with current format; cameras with resolutions and frame rates | ❌ | ✅ |
+| Keyboard, mouse polling rate, speaker, dead pixel and camera tests | ❌ | ✅ |
 | Native Linux version | ❌ | ✅ |
 | Light and dark theme | ❌ | ✅ |
 | Interface in English and Portuguese, switchable live | Several languages | ✅ |
@@ -69,6 +74,8 @@ These links always point to the latest version. Older versions are on the [relea
 | <img src="docs/screenshots/processador.png" alt="Processor tab"> | <img src="docs/screenshots/visao-geral-claro.png" alt="Overview, light theme"> |
 | **Benchmark** | **Exported report** |
 | <img src="docs/screenshots/benchmark.png" alt="Benchmark tab"> | <img src="docs/screenshots/relatorio.png" alt="Exported HTML report"> |
+| **Peripherals** | **Shareable card** |
+| <img src="docs/screenshots/perifericos.png" alt="Peripherals tab"> | <img src="docs/screenshots/cartao.png" alt="Shareable specs card"> |
 
 </details>
 
@@ -128,7 +135,9 @@ sudo modprobe spd5118    # DDR5
 
 ## Usage
 
-- **Ctrl+1** to **Ctrl+7** switch between tabs.
+- **Ctrl+1** to **Ctrl+8** switch between tabs.
+- **Share** on the Overview creates a PNG card with your specs (and your last benchmark score) to post anywhere; it can also be copied straight to the clipboard.
+- The **Peripherals** tab has quick tests: keyboard (every key plus how many keys register at once), mouse polling rate and buttons, left/right speakers, dead pixels in full screen and camera.
 - **Export report** (bottom of the sidebar, or **Ctrl+E**) saves everything Silício collected to your Downloads folder: an HTML page that is easy to read and print to PDF, Markdown to paste on GitHub or forums, or the raw JSON. Serial numbers and the computer name are never included.
 - The installed version is shown at the bottom of the sidebar; click it to see what changed.
 - The language follows your system; change it at the bottom of the sidebar.
@@ -225,7 +234,10 @@ docs/                         CPU-Z analysis and screenshots
 - [ ] Privileged readings on Windows with the PawnIO driver
 - [x] English and Portuguese interface
 - [ ] More translations (contributions welcome)
-- [ ] Shareable specs card, Waybar module, Prometheus/MQTT export, temperature alerts
+- [x] Peripherals tab (displays, USB/Bluetooth, audio, cameras) with interactive tests
+- [x] Shareable specs card
+- [ ] Camera formats and peripheral batteries on Windows
+- [ ] Waybar module, Prometheus/MQTT export, temperature alerts
 - [ ] Online benchmark comparison
 
 Ideas and votes are welcome in [issues](https://github.com/Anghievischi/silicio/issues).

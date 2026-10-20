@@ -5,6 +5,7 @@
   import { goto } from "$app/navigation";
   import Sidebar, { tabs } from "$lib/components/Sidebar.svelte";
   import ReportDialog from "$lib/components/ReportDialog.svelte";
+  import ShareDialog from "$lib/components/ShareDialog.svelte";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import { loadSystem, reportDialog } from "$lib/system.svelte";
   import { i18n } from "$lib/i18n/index.svelte";
@@ -48,6 +49,7 @@
 </div>
 
 <ReportDialog />
+<ShareDialog />
 
 <style>
   .shell {

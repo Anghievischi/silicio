@@ -7,6 +7,9 @@ export const system = $state<{ info: SystemInfo | null }>({ info: null });
 /** Controla a janela de exportação, aberta pelo menu ou pela Visão geral. */
 export const reportDialog = $state({ open: false });
 
+/** Controla a janela do cartão para compartilhar. */
+export const shareDialog = $state({ open: false });
+
 export function loadSystem() {
   if (system.info) return;
   invoke<SystemInfo>("system_info")

@@ -9,6 +9,7 @@
     { href: "/memoria", key: "memory", icon: "▤" },
     { href: "/spd", key: "spd", icon: "▥" },
     { href: "/graficos", key: "gpu", icon: "◩" },
+    { href: "/perifericos", key: "peripherals", icon: "⌨" },
     { href: "/benchmark", key: "bench", icon: "◔" },
   ];
 </script>

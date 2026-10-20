@@ -5,6 +5,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+
+- **Peripherals** tab:
+  - **Displays** decoded from EDID: manufacturer, model (or the panel part number on laptops), size, native resolution, refresh range, color depth, interface, HDR and BT.2020 support, manufacture date, plus the monitors in use with their scaling.
+  - **USB and Bluetooth devices** with their function (keyboard, mouse, camera, audio, controller, receiver…), USB generation and speed, max power and driver. Gaming mice that expose a macro keyboard are shown as mice.
+  - **Peripheral batteries** (mice, keyboards, controllers, headsets) on Linux.
+  - **Audio** inputs and outputs with the card or codec, connection, default device (Windows) and the format in use.
+  - **Cameras** with every format, resolution and maximum frame rate on Linux (read through V4L2 without turning the camera on), names on Windows.
+- **Peripheral tests**: keyboard (every key, physical layout, n-key rollover), mouse polling rate, buttons and wheel, left/right speakers and a frequency sweep, full-screen dead pixel check and a camera preview with its real resolution and frame rate.
+- **Shareable specs card**: a 1200×630 PNG (dark or light) with CPU, GPU, memory, motherboard, display and the last benchmark score, saved to Downloads or copied to the clipboard.
+- The exported report now includes the peripherals.
+
 ## [0.2.0]
 
 ### Added
@@ -71,7 +85,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Anghievischi/silicio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Anghievischi/silicio/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Anghievischi/silicio/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Anghievischi/silicio/compare/v0.1.1...v0.1.2

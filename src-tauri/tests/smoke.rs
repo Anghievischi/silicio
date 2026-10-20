@@ -27,6 +27,14 @@ fn relatorio_json_e_valido() {
 
     assert!(report["cpu"]["threads"].as_u64().unwrap_or(0) > 0);
     assert!(report["memory"]["total_bytes"].as_u64().unwrap_or(0) > 0);
+    // Periféricos podem faltar numa VM, mas a leitura precisa terminar e ter a estrutura completa.
+    for key in ["displays", "devices", "batteries", "audio", "cameras"] {
+        assert!(
+            report["peripherals"][key].is_array(),
+            "periféricos: {}",
+            report["peripherals"]
+        );
+    }
     if cfg!(windows) {
         // No Windows estes dados vêm do WMI; vazios indicariam falha na consulta.
         assert!(
@@ -57,7 +65,7 @@ fn abre_a_janela() {
         .spawn()
         .expect("executa o silicio");
 
-    // O modo --smoke-test fecha sozinho depois de ~22 s.
+    // O modo --smoke-test fecha sozinho depois de ~28 s.
     let start = Instant::now();
     let status = loop {
         if let Some(status) = child.try_wait().expect("consulta o processo") {

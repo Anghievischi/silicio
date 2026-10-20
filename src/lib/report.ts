@@ -2,7 +2,7 @@
 // independente de formato, que depois é escrita em HTML, Markdown ou JSON.
 
 import { invoke } from "@tauri-apps/api/core";
-import { bytes, ghz, hex, or, size, smbiosDate } from "$lib/format";
+import { bytes, cameraSummary, displayName, ghz, hex, or, size, smbiosDate, usbSpeed } from "$lib/format";
 import { i18n, t } from "$lib/i18n/index.svelte";
 import { privileged } from "$lib/privileged.svelte";
 import type {
@@ -14,6 +14,7 @@ import type {
   MemoryInfo,
   MemoryLive,
   PcieLink,
+  Peripherals,
   SpdModule,
   SystemInfo,
 } from "$lib/types";
@@ -41,6 +42,7 @@ interface Data {
   spd: SpdModule[];
   gpus: Gpu[];
   gpuLive: GpuLive[];
+  peripherals: Peripherals | null;
   privileged: typeof privileged.data;
   bench: { date: string; single: number; multi: number; threads: number } | null;
   generatedAt: string;
@@ -49,7 +51,7 @@ interface Data {
 /** Lê todos os componentes; o que falhar fica de fora em vez de interromper o relatório. */
 export async function collect(): Promise<Data> {
   const get = <T>(cmd: string) => invoke<T>(cmd).catch(() => null);
-  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive] = await Promise.all([
+  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, peripherals] = await Promise.all([
     get<SystemInfo>("system_info"),
     get<CpuInfo>("cpu_info"),
     get<CpuLive>("cpu_live"),
@@ -59,6 +61,7 @@ export async function collect(): Promise<Data> {
     get<SpdModule[]>("spd_info"),
     get<Gpu[]>("gpu_info"),
     get<GpuLive[]>("gpu_live"),
+    get<Peripherals>("peripherals_info"),
   ]);
   let bench: Data["bench"] = null;
   try {
@@ -76,6 +79,7 @@ export async function collect(): Promise<Data> {
     spd: spd ?? [],
     gpus: gpus ?? [],
     gpuLive: gpuLive ?? [],
+    peripherals,
     privileged: privileged.data,
     bench,
     generatedAt: new Date().toISOString(),
@@ -302,6 +306,74 @@ function sections(d: Data): Section[] {
         ] as [string, string][],
       })),
     });
+  }
+
+  const per = d.peripherals;
+  if (per && (per.displays.length || per.devices.length || per.audio.length || per.cameras.length)) {
+    const p = m.peripherals;
+    const blocks: Block[] = per.displays.map((x) => ({
+      kind: "kv" as const,
+      title: `${p.displays} · ${displayName(x)}`,
+      rows: [
+        [m.board.type, `${x.internal ? p.internal : p.external}${x.connector ? ` (${x.connector})` : ""}`],
+        [p.size, x.diagonal_in ? `${p.inches(x.diagonal_in.toFixed(1))} · ${x.width_cm} × ${x.height_cm} cm` : "—"],
+        [p.native, x.native ? `${x.native.width} × ${x.native.height} @ ${x.native.refresh_hz} Hz` : "—"],
+        [p.refresh, x.refresh_max ? p.upTo(x.refresh_max) : "—"],
+        [p.color, [x.bit_depth ? p.bitsPerColor(x.bit_depth) : null, x.hdr ? "HDR" : null, x.bt2020 ? "BT.2020" : null].filter(Boolean).join(" · ") || "—"],
+        [p.connection, [x.interface, `EDID ${x.version}`].filter(Boolean).join(" · ")],
+        [p.manufactured, x.year ? (x.week ? m.spd.week(x.week, x.year) : String(x.year)) : "—"],
+        [p.panel, `${x.vendor_code} ${x.product_code.toString(16).toUpperCase().padStart(4, "0")}`],
+      ] as [string, string][],
+    }));
+    for (const cam of per.cameras) {
+      blocks.push({
+        kind: "kv",
+        title: `${p.cameras} · ${cam.name}`,
+        rows: [
+          [p.maxResolution, cameraSummary(cam) ?? "—"],
+          [p.formats, cam.formats.map((f) => f.fourcc).join(", ") || "—"],
+        ],
+      });
+    }
+    if (per.devices.length) {
+      blocks.push({
+        kind: "table",
+        title: p.devices,
+        head: [m.common.model, m.board.type, m.common.manufacturer, "ID", p.speed, p.power],
+        rows: per.devices.map((x) => [
+          or(x.name),
+          [x.bus === "usb" ? "USB" : "Bluetooth", ...x.kinds.map((k) => p.kind[k] ?? k)].join(" · "),
+          or(x.vendor),
+          x.vendor_id != null ? `${x.vendor_id.toString(16).padStart(4, "0")}:${(x.product_id ?? 0).toString(16).padStart(4, "0")}` : "—",
+          usbSpeed(x.speed_mbps) ?? "—",
+          x.max_power_ma ? `${x.max_power_ma} mA` : "—",
+        ]),
+      });
+    }
+    if (per.batteries.length) {
+      blocks.push({
+        kind: "table",
+        title: p.batteries,
+        head: [m.common.model, "%", ""],
+        rows: per.batteries.map((b) => [b.name, b.capacity != null ? `${b.capacity}%` : "—", or(b.status)]),
+      });
+    }
+    if (per.audio.length) {
+      blocks.push({
+        kind: "table",
+        title: p.audio,
+        head: [m.common.model, m.board.type, p.card, m.report.value],
+        rows: per.audio.map((a) => [
+          `${a.name}${a.default ? ` (${p.defaultDevice})` : ""}`,
+          [a.direction === "output" ? p.outputs : p.inputs, a.form ? p.form[a.form] : null, a.bus && a.bus !== a.form ? p.bus[a.bus] : null]
+            .filter(Boolean)
+            .join(" · "),
+          or(a.card),
+          a.sample_rate ? p.format(`${a.sample_rate / 1000} kHz`, a.bits, a.channels) : p.idle,
+        ]),
+      });
+    }
+    out.push({ id: "peripherals", title: m.tabs.peripherals, blocks });
   }
 
   const liveRows: [string, string][] = [];

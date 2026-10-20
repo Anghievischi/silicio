@@ -180,16 +180,10 @@ fn short_vendor(name: &str) -> String {
 #[cfg(windows)]
 mod windows_pci {
     use super::{PciDevice, PcieLink};
-    use windows::Win32::Devices::DeviceAndDriverInstallation::{
-        CM_GETIDLIST_FILTER_ENUMERATOR, CM_GETIDLIST_FILTER_PRESENT, CM_Get_DevNode_PropertyW,
-        CM_Get_Device_ID_List_SizeW, CM_Get_Device_ID_ListW, CM_LOCATE_DEVNODE_NORMAL,
-        CM_Locate_DevNodeW, CR_SUCCESS,
-    };
-    use windows::Win32::Devices::Properties::{
-        DEVPKEY_Device_DeviceDesc, DEVPKEY_Device_Manufacturer, DEVPROPTYPE,
-    };
+    use crate::hw::devnode::{id_field, locate, number, present_ids, text};
+    use windows::Win32::Devices::Properties::{DEVPKEY_Device_DeviceDesc, DEVPKEY_Device_Manufacturer};
     use windows::Win32::Foundation::DEVPROPKEY;
-    use windows::core::{GUID, PCWSTR, w};
+    use windows::core::GUID;
 
     /// Propriedades de dispositivos PCI (`DEVPKEY_PciDevice_*` em devpkey.h).
     const PCI_FMTID: GUID = GUID::from_u128(0x3ab22e31_8264_4b4e_9af5_a8d2d8e33e62);
@@ -205,52 +199,6 @@ mod windows_pci {
     const CURRENT_LINK_WIDTH: DEVPROPKEY = pci_key(10);
     const MAX_LINK_SPEED: DEVPROPKEY = pci_key(11);
     const MAX_LINK_WIDTH: DEVPROPKEY = pci_key(12);
-
-    fn property(devinst: u32, key: &DEVPROPKEY) -> Option<Vec<u8>> {
-        let mut kind = DEVPROPTYPE(0);
-        let mut size = 0u32;
-        // A primeira chamada só informa o tamanho necessário.
-        unsafe { CM_Get_DevNode_PropertyW(devinst, key, &mut kind, None, &mut size, 0) };
-        if size == 0 {
-            return None;
-        }
-        let mut buf = vec![0u8; size as usize];
-        let result = unsafe {
-            CM_Get_DevNode_PropertyW(
-                devinst,
-                key,
-                &mut kind,
-                Some(buf.as_mut_ptr()),
-                &mut size,
-                0,
-            )
-        };
-        (result == CR_SUCCESS).then_some(buf)
-    }
-
-    fn number(devinst: u32, key: &DEVPROPKEY) -> Option<u32> {
-        let b = property(devinst, key)?;
-        Some(match b.len() {
-            1 => b[0] as u32,
-            2 | 3 => u16::from_le_bytes([b[0], b[1]]) as u32,
-            _ => u32::from_le_bytes([b[0], b[1], b[2], b[3]]),
-        })
-    }
-
-    fn text(devinst: u32, key: &DEVPROPKEY) -> Option<String> {
-        let b = property(devinst, key)?;
-        let wide: Vec<u16> = b
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|c| u16::from_le_bytes(*c))
-            .collect();
-        let s = String::from_utf16_lossy(&wide)
-            .trim_end_matches('\0')
-            .trim()
-            .to_string();
-        (!s.is_empty()).then_some(s)
-    }
 
     /// No Windows a velocidade do link vem como a geração (1 = 2,5 GT/s … 5 = 32 GT/s).
     fn link(devinst: u32) -> Option<PcieLink> {
@@ -269,52 +217,18 @@ mod windows_pci {
     }
 
     pub fn list() -> Vec<PciDevice> {
-        let filter = w!("PCI");
-        let flags = CM_GETIDLIST_FILTER_ENUMERATOR | CM_GETIDLIST_FILTER_PRESENT;
-        let mut len = 0u32;
-        if unsafe { CM_Get_Device_ID_List_SizeW(&mut len, filter, flags) } != CR_SUCCESS || len == 0
-        {
-            return Vec::new();
-        }
-        let mut buf = vec![0u16; len as usize];
-        if unsafe { CM_Get_Device_ID_ListW(filter, &mut buf, flags) } != CR_SUCCESS {
-            return Vec::new();
-        }
-        buf.split(|c| *c == 0)
-            .filter(|id| !id.is_empty())
-            .filter_map(device)
-            .collect()
+        present_ids(Some("PCI")).iter().filter_map(|id| device(id)).collect()
     }
 
     /// Lê um dispositivo pelo ID de instância ("PCI\\VEN_1022&DEV_1630&...\\3&2411E6FE&0&00").
-    fn device(id: &[u16]) -> Option<PciDevice> {
-        let instance = String::from_utf16_lossy(id);
-        let mut wide = id.to_vec();
-        wide.push(0);
-        let mut devinst = 0u32;
-        if unsafe {
-            CM_Locate_DevNodeW(
-                &mut devinst,
-                PCWSTR(wide.as_ptr()),
-                CM_LOCATE_DEVNODE_NORMAL,
-            )
-        } != CR_SUCCESS
-        {
-            return None;
-        }
-        let upper = instance.to_uppercase();
-        let hex = |tag: &str| {
-            upper
-                .split(['\\', '&'])
-                .find_map(|part| part.strip_prefix(tag))
-                .and_then(|v| u32::from_str_radix(v, 16).ok())
-        };
+    fn device(instance: &str) -> Option<PciDevice> {
+        let devinst = locate(instance)?;
         Some(PciDevice {
-            address: instance,
+            address: instance.to_string(),
             class: (number(devinst, &BASE_CLASS)? << 8) | number(devinst, &SUB_CLASS).unwrap_or(0),
-            vendor_id: hex("VEN_")? as u16,
-            device_id: hex("DEV_")? as u16,
-            revision: hex("REV_").map(|r| r as u8),
+            vendor_id: id_field(instance, "VEN_")? as u16,
+            device_id: id_field(instance, "DEV_")? as u16,
+            revision: id_field(instance, "REV_").map(|r| r as u8),
             vendor: text(devinst, &DEVPKEY_Device_Manufacturer),
             name: text(devinst, &DEVPKEY_Device_DeviceDesc),
             link: link(devinst),
