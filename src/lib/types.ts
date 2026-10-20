@@ -35,6 +35,8 @@ export interface Cache {
 export interface Core {
   id: number;
   threads: number[];
+  cluster: number;
+  kind: "performance" | "efficiency" | null;
 }
 
 export interface InstructionGroup {
@@ -231,4 +233,11 @@ export interface StressStatus {
   running: boolean;
   seconds: number;
   units: number;
+}
+
+export interface SystemInfo {
+  app_version: string;
+  os: string | null;
+  kernel: string | null;
+  arch: string;
 }

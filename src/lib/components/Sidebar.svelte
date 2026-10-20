@@ -3,7 +3,8 @@
 
   // As abas seguem as do CPU-Z; `key` aponta para o nome traduzido.
   export const tabs: { href: string | null; key: keyof Messages["tabs"]; icon: string }[] = [
-    { href: "/", key: "cpu", icon: "◧" },
+    { href: "/", key: "overview", icon: "◈" },
+    { href: "/processador", key: "cpu", icon: "◧" },
     { href: "/placa-mae", key: "board", icon: "▦" },
     { href: "/memoria", key: "memory", icon: "▤" },
     { href: "/spd", key: "spd", icon: "▥" },
@@ -14,7 +15,11 @@
 
 <script lang="ts">
   import { page } from "$app/state";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { i18n, LOCALES, setLocale, t, type Locale } from "$lib/i18n/index.svelte";
+  import { reportDialog, system } from "$lib/system.svelte";
+
+  const RELEASES = "https://github.com/Anghievischi/silicio/releases";
 </script>
 
 <nav>
@@ -39,6 +44,11 @@
     {/if}
   {/each}
 
+  <button class="tab export" onclick={() => (reportDialog.open = true)} title="{t().report.button} (Ctrl+E)">
+    <span class="icon">↓</span>
+    <span class="label">{t().report.button}</span>
+  </button>
+
   <label class="lang" title={t().common.language}>
     <span class="icon">🌐</span>
     <select
@@ -49,6 +59,13 @@
       {#each LOCALES as locale}<option value={locale.id}>{locale.label}</option>{/each}
     </select>
   </label>
+
+  {#if system.info}
+    {@const v = system.info.app_version}
+    <button class="version" title={t().app.releaseNotes} onclick={() => openUrl(`${RELEASES}/tag/v${v}`).catch(() => {})}>
+      Silício <span class="num">v{v}</span>
+    </button>
+  {/if}
 </nav>
 
 <style>
@@ -115,11 +132,37 @@
     color: var(--muted);
   }
 
+  .export {
+    margin-top: auto;
+    background: none;
+    text-align: left;
+    color: var(--muted);
+  }
+
+  .export:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .version {
+    padding: 4px 10px;
+    border: 0;
+    background: none;
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.8;
+  }
+
+  .version:hover {
+    color: var(--accent);
+    opacity: 1;
+  }
+
   .lang {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: auto;
     padding: 9px 10px;
     color: var(--muted);
   }
@@ -150,7 +193,8 @@
   @media (max-width: 760px) {
     .name,
     .label,
-    .soon {
+    .soon,
+    .version span {
       display: none;
     }
     .logo {
