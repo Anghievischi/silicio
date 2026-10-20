@@ -241,3 +241,98 @@ export interface SystemInfo {
   kernel: string | null;
   arch: string;
 }
+
+// Espelha src-tauri/src/hw/peripherals.rs e edid.rs.
+
+export interface DisplayMode {
+  width: number;
+  height: number;
+  refresh_hz: number;
+}
+
+export interface Display {
+  connector: string | null;
+  internal: boolean | null;
+  vendor_code: string;
+  vendor: string | null;
+  name: string | null;
+  product_code: number;
+  year: number | null;
+  week: number | null;
+  version: string;
+  width_cm: number | null;
+  height_cm: number | null;
+  diagonal_in: number | null;
+  native: DisplayMode | null;
+  modes: DisplayMode[];
+  refresh_min: number | null;
+  refresh_max: number | null;
+  bit_depth: number | null;
+  interface: string | null;
+  hdr: boolean;
+  bt2020: boolean;
+}
+
+export type DeviceKind =
+  | "keyboard"
+  | "mouse"
+  | "hid"
+  | "audio"
+  | "camera"
+  | "storage"
+  | "smartcard"
+  | "bluetooth"
+  | "network"
+  | "gamepad"
+  | "receiver";
+
+export interface Device {
+  bus: "usb" | "bluetooth";
+  vendor_id: number | null;
+  product_id: number | null;
+  vendor: string | null;
+  name: string | null;
+  kinds: DeviceKind[];
+  speed_mbps: number | null;
+  usb_version: string | null;
+  max_power_ma: number | null;
+  driver: string | null;
+}
+
+export interface Battery {
+  name: string;
+  capacity: number | null;
+  status: string | null;
+}
+
+export interface AudioDevice {
+  name: string;
+  card: string | null;
+  direction: "output" | "input";
+  bus: "usb" | "hdmi" | "bluetooth" | "internal" | null;
+  form: string | null;
+  default: boolean;
+  sample_rate: number | null;
+  bits: number | null;
+  channels: number | null;
+}
+
+export interface CameraFormat {
+  fourcc: string;
+  description: string;
+  modes: { width: number; height: number; max_fps: number | null }[];
+}
+
+export interface Camera {
+  name: string;
+  bus: "usb" | null;
+  formats: CameraFormat[];
+}
+
+export interface Peripherals {
+  displays: Display[];
+  devices: Device[];
+  batteries: Battery[];
+  audio: AudioDevice[];
+  cameras: Camera[];
+}

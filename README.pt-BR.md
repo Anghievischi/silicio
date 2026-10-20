@@ -50,6 +50,11 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Gráficos: clocks, uso, temperatura, consumo, VRAM | ✅ | ✅ |
 | Benchmark de CPU (single/multi thread) e teste de estresse com detecção de throttling | ✅ | ✅ |
 | Exportação do relatório completo: página HTML fácil de ler, Markdown para fóruns e JSON bruto | Só TXT | ✅ |
+| Cartão de especificações para compartilhar (PNG, escuro ou claro) com a pontuação do benchmark | Validação online | ✅ |
+| Telas: modelo, painel, tamanho, resolução nativa, faixa de atualização, HDR, data de fabricação (EDID) | ❌ | ✅ |
+| Dispositivos USB e Bluetooth com velocidade, consumo e função; bateria de periféricos (Linux) | ❌ | ✅ |
+| Dispositivos de áudio com o formato em uso; câmeras com resoluções e taxas de quadros | ❌ | ✅ |
+| Testes de teclado, polling rate do mouse, alto-falantes, pixels mortos e câmera | ❌ | ✅ |
 | Versão nativa para Linux | ❌ | ✅ |
 | Tema claro e escuro | ❌ | ✅ |
 | Interface em português e inglês, com troca ao vivo | Vários idiomas | ✅ |
@@ -69,6 +74,8 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | <img src="docs/screenshots/processador.png" alt="Aba Processador"> | <img src="docs/screenshots/visao-geral-claro.png" alt="Visão geral no tema claro"> |
 | **Benchmark** | **Relatório exportado** |
 | <img src="docs/screenshots/benchmark.png" alt="Aba Benchmark"> | <img src="docs/screenshots/relatorio.png" alt="Relatório HTML exportado"> |
+| **Periféricos** | **Cartão para compartilhar** |
+| <img src="docs/screenshots/perifericos.png" alt="Aba Periféricos"> | <img src="docs/screenshots/cartao.png" alt="Cartão de especificações"> |
 
 </details>
 
@@ -128,7 +135,9 @@ sudo modprobe spd5118    # DDR5
 
 ## Uso
 
-- **Ctrl+1** a **Ctrl+7** trocam de aba.
+- **Ctrl+1** a **Ctrl+8** trocam de aba.
+- **Compartilhar**, na Visão geral, cria um cartão PNG com as especificações (e a última pontuação do benchmark) para postar onde quiser; também dá para copiar direto para a área de transferência.
+- A aba **Periféricos** tem testes rápidos: teclado (cada tecla e quantas o teclado reconhece juntas), polling rate e botões do mouse, alto-falantes esquerdo/direito, pixels mortos em tela cheia e câmera.
 - **Exportar relatório** (no pé do menu, ou **Ctrl+E**) salva tudo o que o Silício coletou na pasta Downloads: página HTML fácil de ler e de salvar em PDF, Markdown para colar no GitHub ou em fóruns, ou o JSON bruto. Números de série e o nome do computador nunca entram.
 - A versão instalada aparece no pé do menu; clique nela para ver as novidades.
 - O idioma segue o do sistema; troque no rodapé da barra lateral.
@@ -199,7 +208,10 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 - [ ] Leituras com privilégio no Windows com o driver PawnIO
 - [x] Interface em português e inglês
 - [ ] Mais traduções (contribuições são bem-vindas)
-- [ ] Card de specs para compartilhar, módulo para Waybar, exportação Prometheus/MQTT, alertas de temperatura
+- [x] Aba Periféricos (telas, USB/Bluetooth, áudio, câmeras) com testes interativos
+- [x] Cartão de especificações para compartilhar
+- [ ] Formatos da câmera e bateria de periféricos no Windows
+- [ ] Módulo para Waybar, exportação Prometheus/MQTT, alertas de temperatura
 - [ ] Comparação de benchmark online
 
 Ideias e votos são bem-vindos nas [issues](https://github.com/Anghievischi/silicio/issues).

@@ -1,6 +1,6 @@
 [package]
 name = "silicio"
-version = "0.2.0"
+version = "0.3.0"
 description = "Silício — informações de hardware com visual moderno"
 authors = ["Studio Alpha"]
 edition = "2024"
@@ -50,11 +50,20 @@ wmi = "0.18.4"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_FunctionDiscovery",
     "Win32_Devices_Properties",
     "Win32_Graphics_Dxgi",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
     "Win32_System_Registry",
     "Win32_System_SystemInformation",
+    "Win32_System_Variant",
+    "Win32_UI_Shell_PropertiesSystem",
 ] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

@@ -6,6 +6,7 @@ use hw::board::{self, BoardInfo};
 use hw::cpu::{self, CpuInfo, CpuLive, LiveSampler};
 use hw::gpu::{Gpu, GpuLive, GpuSampler};
 use hw::memory::{self, MemoryInfo, MemoryLive};
+use hw::peripherals::{self, Peripherals};
 use hw::privileged::PrivilegedInfo;
 use hw::spd::{self, SpdModule};
 use serde::Serialize;
@@ -75,6 +76,11 @@ async fn gpu_live(app: AppHandle) -> Result<Vec<GpuLive>, String> {
 }
 
 #[tauri::command]
+async fn peripherals_info() -> Result<Peripherals, String> {
+    off_main(peripherals::read).await
+}
+
+#[tauri::command]
 async fn spd_info() -> Result<Vec<SpdModule>, String> {
     off_main(spd::read).await
 }
@@ -127,7 +133,7 @@ fn system_info() -> SystemInfo {
 
 /// Prefixo obrigatório dos relatórios: o app só abre arquivos que ele mesmo salvou.
 const REPORT_PREFIX: &str = "Silicio-";
-const REPORT_EXTENSIONS: [&str; 3] = ["html", "md", "json"];
+const REPORT_EXTENSIONS: [&str; 4] = ["html", "md", "json", "png"];
 
 fn report_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let paths = app.path();
@@ -150,16 +156,15 @@ fn is_report_name(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
 }
 
-/// Grava o relatório na pasta Downloads (sem sobrescrever) e devolve o caminho.
-#[tauri::command]
-fn save_report(app: AppHandle, name: String, contents: String) -> Result<String, String> {
-    if !is_report_name(&name) {
+/// Grava na pasta Downloads, sem sobrescrever, e devolve o caminho.
+fn write_report(app: &AppHandle, name: &str, contents: &[u8]) -> Result<String, String> {
+    if !is_report_name(name) {
         return Err(format!("nome de arquivo inválido: {name}"));
     }
-    let dir = report_dir(&app)?;
+    let dir = report_dir(app)?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let (stem, ext) = name.rsplit_once('.').unwrap_or((&name, ""));
-    let mut path = dir.join(&name);
+    let (stem, ext) = name.rsplit_once('.').unwrap_or((name, ""));
+    let mut path = dir.join(name);
     let mut n = 2;
     while path.exists() {
         path = dir.join(format!("{stem}-{n}.{ext}"));
@@ -167,6 +172,28 @@ fn save_report(app: AppHandle, name: String, contents: String) -> Result<String,
     }
     std::fs::write(&path, contents).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+fn save_report(app: AppHandle, name: String, contents: String) -> Result<String, String> {
+    write_report(&app, &name, contents.as_bytes())
+}
+
+/// Recebe a imagem como corpo binário da chamada e o nome no cabeçalho `name`.
+#[tauri::command]
+fn save_image(app: AppHandle, request: tauri::ipc::Request<'_>) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("a imagem deve chegar como bytes".into());
+    };
+    let name = request
+        .headers()
+        .get("name")
+        .and_then(|v| v.to_str().ok())
+        .ok_or("cabeçalho name ausente")?;
+    if !name.ends_with(".png") || !bytes.starts_with(b"\x89PNG") {
+        return Err("só imagens PNG".into());
+    }
+    write_report(&app, name, bytes)
 }
 
 /// Abre um relatório salvo no programa padrão ou mostra o arquivo na pasta.
@@ -218,12 +245,12 @@ async fn privileged_info() -> Result<PrivilegedInfo, String> {
     .await?
 }
 
-/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…7) e fecha.
+/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…8) e fecha.
 /// Usado pelo teste `tests/smoke.rs` para garantir que o app abre de verdade.
 fn smoke_test(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(4));
-        for tab in 1..=7 {
+        for tab in 1..=8 {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.eval(format!(
                     "window.dispatchEvent(new KeyboardEvent('keydown', {{ key: '{tab}', ctrlKey: true }}))"
@@ -271,6 +298,7 @@ pub fn run() {
             "spd": spd::read(),
             "gpu": gpus.info(),
             "gpu_live": gpus.live(),
+            "peripherals": peripherals::read(),
         });
         println!(
             "{}",
@@ -318,6 +346,7 @@ pub fn run() {
             memory_info,
             memory_live,
             spd_info,
+            peripherals_info,
             privileged_info,
             gpu_info,
             gpu_live,
@@ -327,6 +356,7 @@ pub fn run() {
             stress_status,
             system_info,
             save_report,
+            save_image,
             open_report
         ])
         .run(tauri::generate_context!())
@@ -341,6 +371,7 @@ mod tests {
     fn so_aceita_nomes_de_relatorio() {
         assert!(is_report_name("Silicio-relatorio-2026-10-19.html"));
         assert!(is_report_name("Silicio-report.md"));
+        assert!(is_report_name("Silicio-card-2026-10-19.png"));
         assert!(!is_report_name("Silicio-x.exe"));
         assert!(!is_report_name("../Silicio-x.html"));
         assert!(!is_report_name("Silicio-a/b.html"));

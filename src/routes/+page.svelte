@@ -7,7 +7,7 @@
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { bytes, ghz, or, smbiosDate } from "$lib/format";
   import { i18n, t } from "$lib/i18n/index.svelte";
-  import { reportDialog } from "$lib/system.svelte";
+  import { reportDialog, shareDialog } from "$lib/system.svelte";
   import type { BoardInfo, CpuInfo, CpuLive, Gpu, GpuLive, MemoryInfo, MemoryLive } from "$lib/types";
 
   const HISTORY = 60;
@@ -103,7 +103,10 @@
         </p>
       {/if}
     </div>
-    <button class="ghost export" onclick={() => (reportDialog.open = true)}>↓ {t().report.button}</button>
+    <div class="hero-actions">
+      <button class="share" onclick={() => (shareDialog.open = true)}>✦ {t().share.button}</button>
+      <button class="ghost export" onclick={() => (reportDialog.open = true)}>↓ {t().report.button}</button>
+    </div>
   </section>
 
   <div class="gauges">
@@ -262,9 +265,25 @@
     min-width: 0;
   }
 
-  .export {
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     align-self: flex-start;
+  }
+
+  .export {
     background: color-mix(in srgb, var(--surface) 70%, transparent);
+  }
+
+  .share {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent);
   }
 
   .hero h1 {
