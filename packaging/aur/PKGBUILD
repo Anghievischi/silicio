@@ -1,6 +1,6 @@
 # Maintainer: Diógenes A. Anghievischi <32557254+Anghievischi@users.noreply.github.com>
 pkgname=silicio-bin
-pkgver=0.1.3
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Modern open-source CPU-Z alternative: CPU, motherboard, memory, SPD and GPU with live data"
 arch=('x86_64')
@@ -12,7 +12,7 @@ provides=('silicio')
 conflicts=('silicio')
 source=("Silicio_${pkgver}_amd64.deb::$url/releases/download/v$pkgver/Silicio_${pkgver}_amd64.deb"
         "LICENSE::https://raw.githubusercontent.com/Anghievischi/silicio/v$pkgver/LICENSE")
-sha256sums=('42294fbbca88cbc63ea9d41d380cd38189cc9e1b52b3aa92edc07a5a972378fb'
+sha256sums=('2de640c92f74f5e03a1859dcf8d55dc669ea460300c8ebc929b9358e9fa831b5'
             'SKIP')
 
 package() {
