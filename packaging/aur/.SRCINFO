@@ -1,6 +1,6 @@
 pkgbase = silicio-bin
 	pkgdesc = Modern open-source CPU-Z alternative: CPU, motherboard, memory, SPD and GPU with live data
-	pkgver = 0.2.0
+	pkgver = 0.3.0
 	pkgrel = 1
 	url = https://github.com/Anghievischi/silicio
 	arch = x86_64
@@ -11,9 +11,9 @@ pkgbase = silicio-bin
 	optdepends = i2c-tools: SPD tab on systems where the driver is not loaded automatically
 	provides = silicio
 	conflicts = silicio
-	source = Silicio_0.2.0_amd64.deb::https://github.com/Anghievischi/silicio/releases/download/v0.2.0/Silicio_0.2.0_amd64.deb
-	source = LICENSE::https://raw.githubusercontent.com/Anghievischi/silicio/v0.2.0/LICENSE
-	sha256sums = 2de640c92f74f5e03a1859dcf8d55dc669ea460300c8ebc929b9358e9fa831b5
+	source = Silicio_0.3.0_amd64.deb::https://github.com/Anghievischi/silicio/releases/download/v0.3.0/Silicio_0.3.0_amd64.deb
+	source = LICENSE::https://raw.githubusercontent.com/Anghievischi/silicio/v0.3.0/LICENSE
+	sha256sums = 3cb3fa3fb7ed6ed9c2a07a40ce774827b134881fe0de97a96e7e1b8bc1af3db2
 	sha256sums = SKIP
 
 pkgname = silicio-bin
