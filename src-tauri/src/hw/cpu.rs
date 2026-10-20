@@ -55,6 +55,10 @@ pub struct Cache {
 pub struct Core {
     pub id: usize,
     pub threads: Vec<usize>,
+    /// Grupo de núcleos que divide o mesmo cache L3 (CCX na AMD).
+    pub cluster: usize,
+    /// "performance" ou "efficiency" em processadores híbridos (Intel P/E).
+    pub kind: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -367,10 +371,45 @@ mod platform {
                 _ => return super::sequential_topology(threads, cores),
             }
         }
-        map.into_values()
+        let mut cores: Vec<Core> = map
+            .into_values()
             .enumerate()
-            .map(|(id, threads)| Core { id, threads })
-            .collect()
+            .map(|(id, threads)| Core {
+                id,
+                threads,
+                cluster: 0,
+                kind: None,
+            })
+            .collect();
+        super::assign_clusters(&mut cores, l3_group);
+
+        // Processadores híbridos da Intel registram um PMU por tipo de núcleo.
+        let performance = read("/sys/devices/cpu_core/cpus").map(|l| super::parse_cpu_list(&l));
+        let efficiency = read("/sys/devices/cpu_atom/cpus").map(|l| super::parse_cpu_list(&l));
+        if let (Some(p), Some(e)) = (performance, efficiency) {
+            for core in &mut cores {
+                let first = core.threads[0];
+                core.kind = if p.contains(&first) {
+                    Some("performance")
+                } else if e.contains(&first) {
+                    Some("efficiency")
+                } else {
+                    None
+                };
+            }
+        }
+        cores
+    }
+
+    /// Lista de threads que dividem o L3 com `cpu`, usada como chave do grupo.
+    fn l3_group(cpu: usize) -> Option<String> {
+        let base = format!("/sys/devices/system/cpu/cpu{cpu}/cache");
+        (0..8).find_map(|i| {
+            let index = format!("{base}/index{i}");
+            (read(&format!("{index}/level"))? == "3")
+                .then(|| read(&format!("{index}/shared_cpu_list")))
+                .flatten()
+        })
     }
 }
 
@@ -380,6 +419,10 @@ mod platform {
     use crate::hw::wmi;
     use windows::Win32::Foundation::ERROR_SUCCESS;
     use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_BINARY, RegGetValueW};
+    use windows::Win32::System::SystemInformation::{
+        GetLogicalProcessorInformationEx, LOGICAL_PROCESSOR_RELATIONSHIP, RelationAll,
+        RelationCache, RelationProcessorCore, SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
+    };
     use windows::core::w;
 
     /// Microcódigo do Registro ("Update Revision", 8 bytes). A Intel guarda a
@@ -423,8 +466,91 @@ mod platform {
         }
     }
 
+    /// Núcleos, grupos de L3 e classe de eficiência pelo GetLogicalProcessorInformationEx.
     pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
-        super::sequential_topology(threads, cores)
+        let entries = processor_relations();
+        let mut found: Vec<Core> = Vec::new();
+        let mut classes: Vec<u8> = Vec::new();
+        let mut l3: Vec<Vec<usize>> = Vec::new();
+        for (relation, info) in &entries {
+            if *relation == RelationProcessorCore {
+                let p = unsafe { &info.Anonymous.Processor };
+                let mask = p.GroupMask[0];
+                found.push(Core {
+                    id: found.len(),
+                    threads: mask_threads(mask.Group, mask.Mask),
+                    cluster: 0,
+                    kind: None,
+                });
+                classes.push(p.EfficiencyClass);
+            } else if *relation == RelationCache {
+                let c = unsafe { &info.Anonymous.Cache };
+                if c.Level == 3 {
+                    let mask = unsafe { c.Anonymous.GroupMask };
+                    l3.push(mask_threads(mask.Group, mask.Mask));
+                }
+            }
+        }
+        if found.is_empty() || found.iter().any(|c| c.threads.iter().any(|&t| t >= threads)) {
+            return super::sequential_topology(threads, cores);
+        }
+        super::assign_clusters(&mut found, |t| l3.iter().position(|g| g.contains(&t)));
+
+        // EfficiencyClass maior = núcleo mais rápido; só faz sentido se houver mais de uma.
+        let (min, max) = (classes.iter().min(), classes.iter().max());
+        if min != max {
+            for (core, class) in found.iter_mut().zip(&classes) {
+                core.kind = Some(if Some(class) == max { "performance" } else { "efficiency" });
+            }
+        }
+        found.sort_by_key(|c| c.threads[0]);
+        found
+    }
+
+    fn mask_threads(group: u16, mask: usize) -> Vec<usize> {
+        let base = group as usize * usize::BITS as usize;
+        (0..usize::BITS as usize)
+            .filter(|bit| mask & (1 << bit) != 0)
+            .map(|bit| base + bit)
+            .collect()
+    }
+
+    /// Copia cada registro de tamanho variável devolvido pela API.
+    fn processor_relations() -> Vec<(LOGICAL_PROCESSOR_RELATIONSHIP, SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)> {
+        let mut len = 0u32;
+        let _ = unsafe { GetLogicalProcessorInformationEx(RelationAll, None, &mut len) };
+        if len == 0 {
+            return Vec::new();
+        }
+        let mut buf = vec![0u8; len as usize];
+        let ok = unsafe {
+            GetLogicalProcessorInformationEx(RelationAll, Some(buf.as_mut_ptr().cast()), &mut len)
+        };
+        if ok.is_err() {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        let mut offset = 0usize;
+        let header = std::mem::size_of::<LOGICAL_PROCESSOR_RELATIONSHIP>() + 4;
+        while offset + header <= len as usize {
+            let size = u32::from_ne_bytes(buf[offset + 4..offset + 8].try_into().unwrap()) as usize;
+            if size < header || offset + size > len as usize {
+                break;
+            }
+            // O registro pode ser menor que a struct (union com tamanhos diferentes).
+            let mut info = SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX::default();
+            let n = size.min(std::mem::size_of_val(&info));
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    buf.as_ptr().add(offset),
+                    (&mut info as *mut SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX).cast::<u8>(),
+                    n,
+                );
+            }
+            out.push((info.Relationship, info));
+            offset += size;
+        }
+        out
     }
 
     /// Zona térmica ACPI pelos contadores de desempenho (não exige administrador).
@@ -471,6 +597,56 @@ fn sequential_topology(threads: usize, cores: usize) -> Vec<Core> {
         .map(|(id, t)| Core {
             id,
             threads: t.to_vec(),
+            cluster: 0,
+            kind: None,
         })
         .collect()
+}
+
+/// Numera os grupos de L3 na ordem em que aparecem, pela primeira thread de cada núcleo.
+#[cfg_attr(not(any(target_os = "linux", windows)), allow(dead_code))]
+fn assign_clusters<K: PartialEq>(cores: &mut [Core], key_of: impl Fn(usize) -> Option<K>) {
+    let mut keys: Vec<K> = Vec::new();
+    for core in cores {
+        let Some(key) = key_of(core.threads[0]) else { continue };
+        core.cluster = match keys.iter().position(|k| *k == key) {
+            Some(i) => i,
+            None => {
+                keys.push(key);
+                keys.len() - 1
+            }
+        };
+    }
+}
+
+/// Lê listas de CPUs no formato do kernel ("0-3,8,10-11").
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn parse_cpu_list(list: &str) -> Vec<usize> {
+    list.trim()
+        .split(',')
+        .filter_map(|part| match part.split_once('-') {
+            Some((a, b)) => Some((a.trim().parse().ok()?..=b.trim().parse().ok()?).collect::<Vec<_>>()),
+            None => part.trim().parse().ok().map(|n| vec![n]),
+        })
+        .flatten()
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn le_lista_de_cpus() {
+        assert_eq!(parse_cpu_list("0-3,8,10-11\n"), vec![0, 1, 2, 3, 8, 10, 11]);
+        assert_eq!(parse_cpu_list(""), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn agrupa_nucleos_por_l3() {
+        let mut cores = sequential_topology(16, 8);
+        assign_clusters(&mut cores, |t| Some(t / 8));
+        let clusters: Vec<usize> = cores.iter().map(|c| c.cluster).collect();
+        assert_eq!(clusters, vec![0, 0, 0, 0, 1, 1, 1, 1]);
+    }
 }

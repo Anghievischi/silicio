@@ -8,11 +8,14 @@ use hw::gpu::{Gpu, GpuLive, GpuSampler};
 use hw::memory::{self, MemoryInfo, MemoryLive};
 use hw::privileged::PrivilegedInfo;
 use hw::spd::{self, SpdModule};
+use serde::Serialize;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 use sysinfo::System;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_opener::OpenerExt;
 
 /// Executa a leitura num thread de trabalho.
 ///
@@ -103,6 +106,86 @@ fn stress_status(stress: tauri::State<'_, Mutex<Stress>>) -> StressStatus {
     stress.lock().unwrap_or_else(|e| e.into_inner()).status()
 }
 
+#[derive(Serialize)]
+struct SystemInfo {
+    app_version: &'static str,
+    os: Option<String>,
+    kernel: Option<String>,
+    arch: &'static str,
+}
+
+/// Sistema operacional e versão do app, para o rodapé e o relatório.
+#[tauri::command]
+fn system_info() -> SystemInfo {
+    SystemInfo {
+        app_version: env!("CARGO_PKG_VERSION"),
+        os: System::long_os_version(),
+        kernel: System::kernel_version(),
+        arch: std::env::consts::ARCH,
+    }
+}
+
+/// Prefixo obrigatório dos relatórios: o app só abre arquivos que ele mesmo salvou.
+const REPORT_PREFIX: &str = "Silicio-";
+const REPORT_EXTENSIONS: [&str; 3] = ["html", "md", "json"];
+
+fn report_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let paths = app.path();
+    paths
+        .download_dir()
+        .or_else(|_| paths.document_dir())
+        .or_else(|_| paths.home_dir())
+        .map_err(|e| e.to_string())
+}
+
+fn is_report_name(name: &str) -> bool {
+    let ext_ok = Path::new(name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| REPORT_EXTENSIONS.contains(&e));
+    name.starts_with(REPORT_PREFIX)
+        && ext_ok
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
+
+/// Grava o relatório na pasta Downloads (sem sobrescrever) e devolve o caminho.
+#[tauri::command]
+fn save_report(app: AppHandle, name: String, contents: String) -> Result<String, String> {
+    if !is_report_name(&name) {
+        return Err(format!("nome de arquivo inválido: {name}"));
+    }
+    let dir = report_dir(&app)?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let (stem, ext) = name.rsplit_once('.').unwrap_or((&name, ""));
+    let mut path = dir.join(&name);
+    let mut n = 2;
+    while path.exists() {
+        path = dir.join(format!("{stem}-{n}.{ext}"));
+        n += 1;
+    }
+    std::fs::write(&path, contents).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Abre um relatório salvo no programa padrão ou mostra o arquivo na pasta.
+#[tauri::command]
+fn open_report(app: AppHandle, path: String, reveal: bool) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    if path.parent() != Some(report_dir(&app)?.as_path()) || !is_report_name(name) {
+        return Err("caminho fora da pasta de relatórios".into());
+    }
+    let opener = app.opener();
+    let result = if reveal {
+        opener.reveal_item_in_dir(&path)
+    } else {
+        opener.open_path(path.to_string_lossy(), None::<&str>)
+    };
+    result.map_err(|e| e.to_string())
+}
+
 /// Usado pelo binário `silicio-helper`.
 pub use hw::privileged::read as privileged_read;
 
@@ -135,12 +218,12 @@ async fn privileged_info() -> Result<PrivilegedInfo, String> {
     .await?
 }
 
-/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…6) e fecha.
+/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…7) e fecha.
 /// Usado pelo teste `tests/smoke.rs` para garantir que o app abre de verdade.
 fn smoke_test(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(4));
-        for tab in 1..=6 {
+        for tab in 1..=7 {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.eval(format!(
                     "window.dispatchEvent(new KeyboardEvent('keydown', {{ key: '{tab}', ctrlKey: true }}))"
@@ -241,8 +324,26 @@ pub fn run() {
             bench_run,
             stress_start,
             stress_stop,
-            stress_status
+            stress_status,
+            system_info,
+            save_report,
+            open_report
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Silício");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_report_name;
+
+    #[test]
+    fn so_aceita_nomes_de_relatorio() {
+        assert!(is_report_name("Silicio-relatorio-2026-10-19.html"));
+        assert!(is_report_name("Silicio-report.md"));
+        assert!(!is_report_name("Silicio-x.exe"));
+        assert!(!is_report_name("../Silicio-x.html"));
+        assert!(!is_report_name("Silicio-a/b.html"));
+        assert!(!is_report_name("outro.html"));
+    }
 }

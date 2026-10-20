@@ -15,7 +15,7 @@ Processor, motherboard, memory, SPD and graphics card, with live data and a clea
 
 [Download](#download) · [Features](#features) · [Installation](#installation) · [Building](#building-from-source) · [Contributing](#contributing) · 🇧🇷 [Leia em português](README.pt-BR.md)
 
-<img src="docs/screenshots/processador.png" alt="Silício showing the Processor tab" width="860">
+<img src="docs/screenshots/visao-geral.png" alt="Silício overview: gauges for load, clock, temperature, memory and GPU, plus a live core map" width="860">
 
 </div>
 
@@ -36,6 +36,8 @@ These links always point to the latest version. Older versions are on the [relea
 
 | | CPU-Z | Silício |
 |---|:---:|:---:|
+| Overview dashboard with animated gauges for CPU, memory and GPU | ❌ | ✅ |
+| Live core map grouped like the chip (shared L3 groups / AMD CCX, Intel P and E cores) | ❌ | ✅ |
 | CPU name, codename, process, family/model/stepping, instructions, caches | ✅ | ✅ |
 | Live clock per thread, with history chart | Clocks window | ✅ |
 | CPU temperature and load per thread | ❌ | ✅ |
@@ -47,7 +49,7 @@ These links always point to the latest version. Older versions are on the [relea
 | XMP / EXPO profiles | ✅ | Detection only |
 | Graphics: clocks, load, temperature, power, VRAM | ✅ | ✅ |
 | CPU benchmark (single/multi thread) and stress test with throttling detection | ✅ | ✅ |
-| JSON report (`--json`) | TXT only | ✅ |
+| Full report export: readable HTML page, Markdown for forums, raw JSON | TXT only | ✅ |
 | Native Linux version | ❌ | ✅ |
 | Light and dark theme | ❌ | ✅ |
 | Interface in English and Portuguese, switchable live | Several languages | ✅ |
@@ -63,8 +65,10 @@ These links always point to the latest version. Older versions are on the [relea
 | <img src="docs/screenshots/memoria.png" alt="Memory tab"> | <img src="docs/screenshots/spd.png" alt="SPD tab"> |
 | **Graphics** | **Motherboard** |
 | <img src="docs/screenshots/graficos.png" alt="Graphics tab"> | <img src="docs/screenshots/placa-mae.png" alt="Motherboard tab"> |
-| **Benchmark** | **Light theme** |
-| <img src="docs/screenshots/benchmark.png" alt="Benchmark tab"> | <img src="docs/screenshots/processador-claro.png" alt="Processor tab, light theme"> |
+| **Processor** | **Light theme** |
+| <img src="docs/screenshots/processador.png" alt="Processor tab"> | <img src="docs/screenshots/visao-geral-claro.png" alt="Overview, light theme"> |
+| **Benchmark** | **Exported report** |
+| <img src="docs/screenshots/benchmark.png" alt="Benchmark tab"> | <img src="docs/screenshots/relatorio.png" alt="Exported HTML report"> |
 
 </details>
 
@@ -124,9 +128,11 @@ sudo modprobe spd5118    # DDR5
 
 ## Usage
 
-- **Ctrl+1** to **Ctrl+6** switch between tabs.
+- **Ctrl+1** to **Ctrl+7** switch between tabs.
+- **Export report** (bottom of the sidebar, or **Ctrl+E**) saves everything Silício collected to your Downloads folder: an HTML page that is easy to read and print to PDF, Markdown to paste on GitHub or forums, or the raw JSON. Serial numbers and the computer name are never included.
+- The installed version is shown at the bottom of the sidebar; click it to see what changed.
 - The language follows your system; change it at the bottom of the sidebar.
-- **Copy JSON** on the Processor tab copies the full report, handy for bug reports and forums.
+- **Copy JSON** on the Processor tab copies the processor data.
 - When a new version is out, Silício offers to update itself (Windows installer, `.deb`, `.rpm` and AppImage). Updates are signed and checked before installing.
 - From a terminal, `silicio --json` prints the report for every tab without opening a window (on Windows: `Silicio.exe --json > report.json`).
 - `silicio --bench` runs the CPU benchmark (5 s single-thread + 5 s multi-thread) and prints the scores as JSON.
@@ -213,6 +219,7 @@ docs/                         CPU-Z analysis and screenshots
 ## Roadmap
 
 - [x] Processor, motherboard, memory, SPD (DDR4), graphics and benchmark tabs
+- [x] Overview dashboard, live core map and report export
 - [x] Root helper for MSR and SMBIOS on Linux
 - [ ] XMP / EXPO profile decoding and DDR5 SPD
 - [ ] Privileged readings on Windows with the PawnIO driver

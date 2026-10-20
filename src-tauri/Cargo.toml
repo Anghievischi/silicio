@@ -1,6 +1,6 @@
 [package]
 name = "silicio"
-version = "0.1.3"
+version = "0.2.0"
 description = "Silício — informações de hardware com visual moderno"
 authors = ["Studio Alpha"]
 edition = "2024"
@@ -53,6 +53,7 @@ windows = { version = "0.62", features = [
     "Win32_Devices_Properties",
     "Win32_Graphics_Dxgi",
     "Win32_System_Registry",
+    "Win32_System_SystemInformation",
 ] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

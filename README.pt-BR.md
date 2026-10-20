@@ -15,7 +15,7 @@ Processador, placa-mãe, memória, SPD e placa de vídeo, com dados ao vivo e vi
 
 [Download](#download) · [Recursos](#recursos) · [Instalação](#instalação) · [Compilando](#compilando-a-partir-do-código) · [Contribuindo](#contribuindo) · 🇺🇸 [Read in English](README.md)
 
-<img src="docs/screenshots/processador.png" alt="Silício mostrando a aba Processador" width="860">
+<img src="docs/screenshots/visao-geral.png" alt="Visão geral do Silício: mostradores de carga, clock, temperatura, memória e GPU, e o mapa de núcleos ao vivo" width="860">
 
 </div>
 
@@ -36,6 +36,8 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 
 | | CPU-Z | Silício |
 |---|:---:|:---:|
+| Visão geral com mostradores animados de CPU, memória e GPU | ❌ | ✅ |
+| Mapa de núcleos ao vivo agrupado como no chip (grupos de L3 / CCX da AMD, núcleos P e E da Intel) | ❌ | ✅ |
 | Nome, codinome, processo, família/modelo/stepping, instruções e caches da CPU | ✅ | ✅ |
 | Clock ao vivo por thread, com gráfico | Janela Clocks | ✅ |
 | Temperatura e uso da CPU por thread | ❌ | ✅ |
@@ -47,7 +49,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Perfis XMP / EXPO | ✅ | Só detecção |
 | Gráficos: clocks, uso, temperatura, consumo, VRAM | ✅ | ✅ |
 | Benchmark de CPU (single/multi thread) e teste de estresse com detecção de throttling | ✅ | ✅ |
-| Relatório em JSON (`--json`) | Só TXT | ✅ |
+| Exportação do relatório completo: página HTML fácil de ler, Markdown para fóruns e JSON bruto | Só TXT | ✅ |
 | Versão nativa para Linux | ❌ | ✅ |
 | Tema claro e escuro | ❌ | ✅ |
 | Interface em português e inglês, com troca ao vivo | Vários idiomas | ✅ |
@@ -63,8 +65,10 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | <img src="docs/screenshots/memoria.png" alt="Aba Memória"> | <img src="docs/screenshots/spd.png" alt="Aba SPD"> |
 | **Gráficos** | **Placa-mãe** |
 | <img src="docs/screenshots/graficos.png" alt="Aba Gráficos"> | <img src="docs/screenshots/placa-mae.png" alt="Aba Placa-mãe"> |
-| **Benchmark** | **Tema claro** |
-| <img src="docs/screenshots/benchmark.png" alt="Aba Benchmark"> | <img src="docs/screenshots/processador-claro.png" alt="Aba Processador no tema claro"> |
+| **Processador** | **Tema claro** |
+| <img src="docs/screenshots/processador.png" alt="Aba Processador"> | <img src="docs/screenshots/visao-geral-claro.png" alt="Visão geral no tema claro"> |
+| **Benchmark** | **Relatório exportado** |
+| <img src="docs/screenshots/benchmark.png" alt="Aba Benchmark"> | <img src="docs/screenshots/relatorio.png" alt="Relatório HTML exportado"> |
 
 </details>
 
@@ -124,9 +128,11 @@ sudo modprobe spd5118    # DDR5
 
 ## Uso
 
-- **Ctrl+1** a **Ctrl+6** trocam de aba.
+- **Ctrl+1** a **Ctrl+7** trocam de aba.
+- **Exportar relatório** (no pé do menu, ou **Ctrl+E**) salva tudo o que o Silício coletou na pasta Downloads: página HTML fácil de ler e de salvar em PDF, Markdown para colar no GitHub ou em fóruns, ou o JSON bruto. Números de série e o nome do computador nunca entram.
+- A versão instalada aparece no pé do menu; clique nela para ver as novidades.
 - O idioma segue o do sistema; troque no rodapé da barra lateral.
-- **Copiar JSON**, na aba Processador, copia o relatório completo: útil para relatar bugs e pedir ajuda em fóruns.
+- **Copiar JSON**, na aba Processador, copia os dados do processador.
 - Quando sai uma versão nova, o Silício oferece se atualizar sozinho (instalador do Windows, `.deb`, `.rpm` e AppImage). As atualizações são assinadas e conferidas antes de instalar.
 - No terminal, `silicio --json` imprime o relatório de todas as abas sem abrir janela (no Windows: `Silicio.exe --json > relatorio.json`).
 - `silicio --bench` roda o benchmark de CPU (5 s single-thread + 5 s multi-thread) e imprime as pontuações em JSON.
@@ -187,6 +193,7 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 ## Roteiro
 
 - [x] Abas de processador, placa-mãe, memória, SPD (DDR4), gráficos e benchmark
+- [x] Visão geral, mapa de núcleos ao vivo e exportação do relatório
 - [x] Helper com root para MSR e SMBIOS no Linux
 - [ ] Decodificação de perfis XMP / EXPO e SPD DDR5
 - [ ] Leituras com privilégio no Windows com o driver PawnIO

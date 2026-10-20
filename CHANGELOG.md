@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- **Overview** tab, now the start screen: CPU, system and chassis at a glance, animated gauges for CPU load, average clock, temperature, memory in use and GPU load, plus summary cards that link to each tab.
+- **Live core map** on the Overview and Processor tabs: cores grouped like on the chip (each group shares an L3 cache, the CCX on AMD), colored by load, with the clock of each core and a bar per thread. Intel hybrid processors show P and E cores (Linux through `cpu_core`/`cpu_atom`, Windows through `GetLogicalProcessorInformationEx`, which also gives the real core topology on Windows now).
+- **Report export** (sidebar or Ctrl+E): everything Silício collected, organized by component, saved to the Downloads folder as an HTML page (readable, printable to PDF, follows light/dark theme), Markdown for forums, or raw JSON. "Copy as text" puts the Markdown on the clipboard. Serial numbers and the computer name are not included.
+- App version at the bottom of the sidebar, linking to the release notes; operating system and kernel in the report.
+- Loading placeholders on the Overview instead of plain text.
+
 ### Changed
 
 - Release workflow: the release is created first as a pre-release, the packages are uploaded to it, and only then it becomes the latest release, so the direct download links never point to a release without files.
@@ -61,7 +71,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Anghievischi/silicio/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Anghievischi/silicio/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Anghievischi/silicio/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Anghievischi/silicio/compare/v0.1.0...v0.1.1
