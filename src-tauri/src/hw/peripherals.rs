@@ -607,15 +607,15 @@ mod platform {
 #[cfg(windows)]
 mod platform {
     use super::*;
-    use crate::hw::devnode::{id_field, locate, present_ids, text};
+    use crate::hw::devnode::{id_field, locate, present_ids, property, text};
     use std::collections::HashMap;
     use windows::Win32::Devices::Properties::{
         DEVPKEY_Device_BusReportedDeviceDesc, DEVPKEY_Device_Class, DEVPKEY_Device_DeviceDesc,
         DEVPKEY_Device_FriendlyName, DEVPKEY_Device_Manufacturer, DEVPKEY_Device_Service,
     };
-    use windows::Win32::Foundation::ERROR_SUCCESS;
+    use windows::Win32::Foundation::{DEVPROPKEY, ERROR_SUCCESS};
     use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_BINARY, RegGetValueW};
-    use windows::core::{HSTRING, w};
+    use windows::core::{GUID, HSTRING, w};
 
     struct Node {
         id: String,
@@ -641,7 +641,7 @@ mod platform {
         Peripherals {
             displays: displays(&nodes),
             devices: devices(&nodes),
-            batteries: Vec::new(),
+            batteries: batteries(&nodes),
             audio: audio::list(),
             cameras: cameras(&nodes),
         }
@@ -757,18 +757,225 @@ mod platform {
         list
     }
 
+    /// Nível de bateria que o Windows mostra em Configurações → Bluetooth (um
+    /// byte de 0 a 100, sem chave nomeada no SDK). Cobre fones, mouses e
+    /// teclados Bluetooth; receptores USB proprietários não informam.
+    const BLUETOOTH_BATTERY: DEVPROPKEY = DEVPROPKEY {
+        fmtid: GUID::from_u128(0x104ea319_6ee2_4701_bd47_8ddbf425bbe5),
+        pid: 2,
+    };
+
+    fn batteries(nodes: &[Node]) -> Vec<Battery> {
+        let mut list: Vec<Battery> = Vec::new();
+        for n in nodes {
+            let upper = n.id.to_uppercase();
+            if !upper.starts_with("BTHENUM\\") && !upper.starts_with("BTHLE\\") {
+                continue;
+            }
+            let Some(capacity) = property(n.devinst, &BLUETOOTH_BATTERY)
+                .and_then(|b| b.first().copied())
+                .filter(|c| *c <= 100)
+            else {
+                continue;
+            };
+            let Some(name) = n.name.clone() else { continue };
+            // Um fone aparece em vários nós (um por perfil), todos com o mesmo nível.
+            if list.iter().any(|b| b.name == name) {
+                continue;
+            }
+            list.push(Battery {
+                name,
+                capacity: Some(capacity),
+                status: None,
+            });
+        }
+        list
+    }
+
+    /// Câmeras do Gerenciador de Dispositivos, com os formatos lidos pelo
+    /// Media Foundation (casados pelo nome).
     fn cameras(nodes: &[Node]) -> Vec<Camera> {
+        let mut formats = media_foundation::cameras();
         nodes
             .iter()
             .filter(|n| matches!(n.class.as_deref(), Some("Camera" | "Image")))
             .filter_map(|n| {
+                let name = n.name.clone()?;
                 Some(Camera {
-                    name: n.name.clone()?,
+                    formats: formats.remove(&name).unwrap_or_default(),
+                    name,
                     bus: n.id.to_uppercase().starts_with("USB\\").then_some("usb"),
-                    formats: Vec::new(),
                 })
             })
             .collect()
+    }
+
+    /// Formatos de captura pelo Media Foundation. Só cria a fonte e lista os
+    /// tipos de mídia, sem iniciar a captura (a luz da câmera não acende); se
+    /// a câmera estiver em uso ou bloqueada na privacidade do Windows, fica sem formatos.
+    mod media_foundation {
+        use super::super::{CameraFormat, CameraMode};
+        use std::collections::HashMap;
+        use windows::Win32::Media::MediaFoundation::{
+            IMFActivate, IMFAttributes, IMFMediaSource, MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID,
+            MF_MT_FRAME_RATE, MF_MT_FRAME_RATE_RANGE_MAX, MF_MT_FRAME_SIZE, MF_MT_SUBTYPE,
+            MF_VERSION, MFCreateAttributes, MFEnumDeviceSources, MFSTARTUP_LITE, MFShutdown,
+            MFStartup,
+        };
+        use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx, CoTaskMemFree};
+        use windows::core::{GUID, PWSTR};
+
+        /// Maior fps de cada resolução (largura, altura).
+        type Sizes = HashMap<(u32, u32), f64>;
+
+        /// Formatos por nome amigável da câmera.
+        pub fn cameras() -> HashMap<String, Vec<CameraFormat>> {
+            unsafe {
+                let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+                if MFStartup(MF_VERSION, MFSTARTUP_LITE).is_err() {
+                    return HashMap::new();
+                }
+                let result = enumerate().unwrap_or_default();
+                let _ = MFShutdown();
+                result
+            }
+        }
+
+        unsafe fn enumerate() -> windows::core::Result<HashMap<String, Vec<CameraFormat>>> {
+            let mut attributes: Option<IMFAttributes> = None;
+            unsafe { MFCreateAttributes(&mut attributes, 1)? };
+            let attributes = attributes.ok_or(windows::core::Error::empty())?;
+            unsafe {
+                attributes.SetGUID(
+                    &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+                    &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID,
+                )?
+            };
+
+            let mut devices: *mut Option<IMFActivate> = std::ptr::null_mut();
+            let mut count = 0u32;
+            unsafe { MFEnumDeviceSources(&attributes, &mut devices, &mut count)? };
+            if devices.is_null() {
+                return Ok(HashMap::new());
+            }
+            // O array é do Media Foundation: cada item é liberado ao sair do slice
+            // (Option<IMFActivate> faz Release no drop) e o array com CoTaskMemFree.
+            let list = unsafe { std::slice::from_raw_parts_mut(devices, count as usize) };
+            let mut result = HashMap::new();
+            for activate in list.iter_mut().filter_map(Option::take) {
+                if let Some(name) = unsafe { friendly_name(&activate) } {
+                    let formats = unsafe { formats(&activate) }.unwrap_or_default();
+                    result.insert(name, formats);
+                }
+                let _ = unsafe { activate.ShutdownObject() };
+            }
+            unsafe { CoTaskMemFree(Some(devices as *const _)) };
+            Ok(result)
+        }
+
+        unsafe fn friendly_name(activate: &IMFActivate) -> Option<String> {
+            let mut text = PWSTR::null();
+            let mut len = 0u32;
+            unsafe {
+                activate
+                    .GetAllocatedString(&MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &mut text, &mut len)
+                    .ok()?;
+                let name = text.to_string().ok();
+                CoTaskMemFree(Some(text.0 as *const _));
+                name
+            }
+        }
+
+        unsafe fn formats(activate: &IMFActivate) -> windows::core::Result<Vec<CameraFormat>> {
+            let source: IMFMediaSource = unsafe { activate.ActivateObject()? };
+            let result = unsafe { media_types(&source) };
+            let _ = unsafe { source.Shutdown() };
+            result
+        }
+
+        unsafe fn media_types(source: &IMFMediaSource) -> windows::core::Result<Vec<CameraFormat>> {
+            let descriptor = unsafe { source.CreatePresentationDescriptor()? };
+            let mut selected = Default::default();
+            let mut stream = None;
+            unsafe { descriptor.GetStreamDescriptorByIndex(0, &mut selected, &mut stream)? };
+            let stream = stream.ok_or(windows::core::Error::empty())?;
+            let handler = unsafe { stream.GetMediaTypeHandler()? };
+
+            // Agrupa por formato e, em cada um, guarda o maior fps de cada resolução.
+            let mut by_format: Vec<(GUID, Sizes)> = Vec::new();
+            for i in 0..unsafe { handler.GetMediaTypeCount()? } {
+                let Ok(media) = (unsafe { handler.GetMediaTypeByIndex(i) }) else { continue };
+                let Ok(subtype) = (unsafe { media.GetGUID(&MF_MT_SUBTYPE) }) else { continue };
+                let Ok(size) = (unsafe { media.GetUINT64(&MF_MT_FRAME_SIZE) }) else { continue };
+                let (width, height) = ((size >> 32) as u32, size as u32);
+                let fps = unsafe { media.GetUINT64(&MF_MT_FRAME_RATE_RANGE_MAX) }
+                    .or_else(|_| unsafe { media.GetUINT64(&MF_MT_FRAME_RATE) })
+                    .ok()
+                    .and_then(|r| {
+                        let (num, den) = ((r >> 32) as u32, r as u32);
+                        (den > 0).then(|| num as f64 / den as f64)
+                    })
+                    .unwrap_or(0.0);
+                let index = match by_format.iter().position(|(g, _)| *g == subtype) {
+                    Some(i) => i,
+                    None => {
+                        by_format.push((subtype, HashMap::new()));
+                        by_format.len() - 1
+                    }
+                };
+                let best = by_format[index].1.entry((width, height)).or_insert(0.0);
+                *best = best.max(fps);
+            }
+
+            Ok(by_format
+                .into_iter()
+                .map(|(subtype, sizes)| {
+                    let fourcc = fourcc(&subtype);
+                    let mut modes: Vec<CameraMode> = sizes
+                        .into_iter()
+                        .map(|((width, height), fps)| CameraMode {
+                            width,
+                            height,
+                            max_fps: (fps > 0.0).then_some((fps * 100.0).round() / 100.0),
+                        })
+                        .collect();
+                    modes.sort_by_key(|m| std::cmp::Reverse(m.width * m.height));
+                    CameraFormat {
+                        description: description(&fourcc).to_string(),
+                        fourcc,
+                        modes,
+                    }
+                })
+                .collect())
+        }
+
+        /// Os subtipos de vídeo do Media Foundation guardam o FOURCC no Data1;
+        /// os formatos RGB antigos usam um código numérico do Direct3D.
+        fn fourcc(subtype: &GUID) -> String {
+            let bytes = subtype.data1.to_le_bytes();
+            if bytes.iter().all(|b| b.is_ascii_graphic() || *b == b' ') {
+                return String::from_utf8_lossy(&bytes).trim().to_string();
+            }
+            match subtype.data1 {
+                20 => "RGB24".into(),
+                21 | 22 => "RGB32".into(),
+                n => format!("0x{n:X}"),
+            }
+        }
+
+        fn description(fourcc: &str) -> &'static str {
+            match fourcc {
+                "MJPG" => "Motion-JPEG",
+                "YUY2" => "YUYV 4:2:2",
+                "NV12" => "NV12 4:2:0",
+                "I420" | "IYUV" => "YUV 4:2:0 planar",
+                "H264" => "H.264",
+                "HEVC" | "H265" => "H.265",
+                "RGB24" | "RGB32" => "RGB",
+                _ => "",
+            }
+        }
     }
 
     /// Dispositivos de áudio pelo MMDevice (a mesma lista do painel de som do Windows).

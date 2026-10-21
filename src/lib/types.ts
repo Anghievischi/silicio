@@ -151,6 +151,7 @@ export interface PrivilegedInfo {
   bios_vendor: string | null;
   bus_mhz: number | null;
   base_ratio: number | null;
+  max_mhz: number | null;
   threads: ThreadMsr[];
   errors: string[];
 }
@@ -165,7 +166,8 @@ export interface SpeedBin {
   trc: number;
 }
 
-export interface Ddr4 {
+/** SPD decodificado (DDR4 ou DDR5). */
+export interface SpdDecoded {
   spd_revision: string;
   crc_ok: boolean;
   size_mb: number;
@@ -185,7 +187,23 @@ export interface Ddr4 {
   cas_supported: number[];
   timings_ns: { tck_min: number; taa: number; trcd: number; trp: number; tras: number; trc: number; trfc1: number };
   table: SpeedBin[];
-  xmp: { version: string; profiles: number } | null;
+  xmp: { version: string; profiles: MemProfile[] } | null;
+  expo: MemProfile[] | null;
+}
+
+/** Perfil XMP ou AMD EXPO. */
+export interface MemProfile {
+  number: number;
+  name: string | null;
+  voltage: number;
+  speed_mts: number;
+  clock_mhz: number;
+  cl: number;
+  trcd: number;
+  trp: number;
+  tras: number;
+  trc: number;
+  trfc1: number;
 }
 
 export interface SpdModule {
@@ -193,7 +211,7 @@ export interface SpdModule {
   slot: number;
   kind: string;
   module_type: string | null;
-  decoded: Ddr4 | null;
+  decoded: SpdDecoded | null;
 }
 
 export interface Gpu {

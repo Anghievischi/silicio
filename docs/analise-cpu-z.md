@@ -91,7 +91,7 @@ Windows Version, DirectX.
 | Timings atuais do controlador (CL, tRCD…) | Pendente: exige registradores do controlador |
 | SPD: Module Manuf., DRAM Manuf., Part Number, Size, Week/Year | Sim (DDR4) |
 | SPD: Max Bandwidth, Ranks, Voltage, Timings Table | Sim (DDR4), conferido com `decode-dimms` |
-| SPD: XMP/EXPO Profiles | Parcial: só detecta XMP |
-| SPD: DDR5 | Pendente |
+| SPD: XMP/EXPO Profiles | Sim: XMP 2.0 (DDR4), XMP 3.0 e EXPO (DDR5), com tensão e timings |
+| SPD: DDR5 | Sim (Linux, driver `spd5118`) |
 | Uso de RAM ao vivo | **Extra** |
 | Diagnóstico (single channel, XMP desligado) | **Extra** |

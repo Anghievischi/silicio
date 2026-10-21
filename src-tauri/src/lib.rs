@@ -12,6 +12,7 @@ use hw::spd::{self, SpdModule};
 use hw::upgrade::{self, Upgrades};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+#[cfg(not(all(windows, target_arch = "x86_64")))]
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -227,7 +228,19 @@ fn open_report(app: AppHandle, path: String, reveal: bool) -> Result<(), String>
 /// Usado pelo binário `silicio-helper`.
 pub use hw::privileged::read as privileged_read;
 
+/// Usado pelo `silicio-helper --pipe` no Windows.
+#[cfg(all(windows, target_arch = "x86_64"))]
+pub use hw::privileged::win::serve as privileged_serve;
+
+/// No Windows lê pelo PawnIO, pedindo administrador pelo UAC se preciso.
+#[cfg(all(windows, target_arch = "x86_64"))]
+#[tauri::command]
+async fn privileged_info() -> Result<PrivilegedInfo, String> {
+    off_main(hw::privileged::win::start).await?
+}
+
 /// Roda o `silicio-helper` como root via pkexec (o polkit pede a senha).
+#[cfg(not(all(windows, target_arch = "x86_64")))]
 #[tauri::command]
 async fn privileged_info() -> Result<PrivilegedInfo, String> {
     off_main(|| {

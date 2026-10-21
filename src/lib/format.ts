@@ -1,3 +1,6 @@
+import type { Messages } from "./i18n/pt-BR";
+import type { MemProfile, SpdDecoded } from "./types";
+
 export const hex = (n: number) => "0x" + n.toString(16).toUpperCase();
 
 export function ghz(mhz: number | null | undefined): string {
@@ -53,4 +56,21 @@ export function displayName(d: { vendor: string | null; vendor_code: string; nam
   const vendor = d.vendor ?? d.vendor_code;
   if (!d.name) return vendor;
   return d.name.toLowerCase().startsWith(vendor.toLowerCase()) ? d.name : `${vendor} ${d.name}`;
+}
+
+/** "XMP 3.0 · 2 perfis + EXPO · 1 perfil", ou "Não". */
+export function memProfilesSummary(d: SpdDecoded, m: Messages): string {
+  const parts = [
+    d.xmp ? m.spd.xmpProfiles(d.xmp.version, d.xmp.profiles.length) : null,
+    d.expo ? m.spd.expoProfiles(d.expo.length) : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" + ") : m.spd.no;
+}
+
+/** Perfis XMP e EXPO de um módulo, com o rótulo que o BIOS mostra ("XMP 1", "EXPO 2"). */
+export function memProfiles(d: SpdDecoded): { label: string; profile: MemProfile }[] {
+  return [
+    ...(d.xmp?.profiles ?? []).map((p) => ({ label: `XMP ${p.number}`, profile: p })),
+    ...(d.expo ?? []).map((p) => ({ label: `EXPO ${p.number}`, profile: p })),
+  ];
 }

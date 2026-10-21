@@ -39,6 +39,11 @@ export const ptBR = {
     failed: "Não foi possível atualizar automaticamente.",
     download: "Baixar manualmente",
   },
+  heat: {
+    title: (c: number) => `Processador muito quente: ${c} °C`,
+    text: "Está assim há mais de 30 segundos, perto do limite em que ele reduz o desempenho para se proteger. Confira se as ventoinhas estão girando e se há poeira nas entradas de ar. Se acontecer até em uso leve, a pasta térmica pode precisar de troca.",
+    dismiss: "Avisar de novo em 30 min",
+  },
   app: {
     version: (v: string) => `versão ${v}`,
     releaseNotes: "Ver novidades desta versão",
@@ -329,8 +334,8 @@ export const ptBR = {
     baseMultiplier: "Multiplicador base",
     externalClock: "Clock externo (SMBIOS)",
     someFailed: (errors: string) => `Algumas leituras falharam: ${errors}`,
-    windowsUnavailable:
-      "No Windows, soquete, tensão e bus real ainda não estão disponíveis (vão usar o driver PawnIO).",
+    unlockTextWindows:
+      "Temperatura, clock máximo, tensão do núcleo e bus real exigem o driver PawnIO (pawnio.eu) e acesso de administrador. O Silício roda um pequeno helper só de leitura e o Windows pede a autorização; depois da primeira vez, ela é pedida ao abrir o app.",
     unlockText:
       "Soquete, tensão do núcleo e o bus real exigem acesso de administrador (registradores MSR e tabela SMBIOS). O Silício roda um pequeno helper só de leitura, e o sistema pede sua senha.",
     unlock: "Desbloquear",
@@ -416,6 +421,8 @@ export const ptBR = {
     howTo: "Como habilitar",
     howToText:
       "O Linux expõe o SPD pelos drivers ee1004 (DDR4) e spd5118 (DDR5). Em alguns sistemas é preciso carregar o driver do SMBus (i2c-piix4 na AMD, i2c-i801 na Intel). Notebooks às vezes bloqueiam o acesso no firmware.",
+    howToTextWindows:
+      "No Windows o Silício não lê o SPD dos pentes. Fabricante, modelo, tamanho e velocidade de cada pente estão na aba Memória.",
     module: "Módulo",
     notDecoded: (kind: string) => `A decodificação de módulos ${kind} ainda não foi implementada.`,
     maxSpeed: "Velocidade máxima",
@@ -423,6 +430,7 @@ export const ptBR = {
     timings: "Timings",
     xmp: "XMP / EXPO",
     xmpProfiles: (version: string, n: number) => `XMP ${version} · ${n} perfil(is)`,
+    expoProfiles: (n: number) => `EXPO · ${n} perfil(is)`,
     no: "Não",
     dramChips: "Chips DRAM",
     manufactured: "Fabricação",
@@ -440,6 +448,9 @@ export const ptBR = {
     minTimings: "Timings mínimos",
     tckMin: "tCK mín.",
     jedecTable: "Tabela de timings JEDEC",
+    xmpTable: "Perfis XMP / EXPO",
+    profile: "Perfil",
+    xmpHint: "Valores gravados pelo fabricante. Só valem com o XMP ou o EXPO ativado no BIOS.",
     clock: "Clock",
     casHint: (list: string) => `CAS suportadas: ${list}. Ciclos calculados com o arredondamento da JEDEC.`,
   },

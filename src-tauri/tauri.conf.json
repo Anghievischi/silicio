@@ -70,7 +70,8 @@
         "languages": [
           "PortugueseBR",
           "English"
-        ]
+        ],
+        "installerHooks": "../packaging/windows/installer-hooks.nsh"
       }
     }
   },

@@ -12,7 +12,7 @@
   const HISTORY = 60;
   // Clock de referência nominal das plataformas atuais, usado até o MSR ser lido.
   const NOMINAL_BUS_MHZ = 100;
-  // O helper com privilégio usa pkexec; no Windows a leitura de MSR vai depender do driver PawnIO.
+  // O helper com privilégio usa pkexec no Linux e o PawnIO (pelo UAC) no Windows.
   const isWindows = navigator.userAgent.includes("Windows");
 
   let bus = $derived(privileged.data?.bus_mhz ?? null);
@@ -29,6 +29,12 @@
   let copied = $state(false);
 
   let l3 = $derived(info?.caches.filter((c) => c.level === 3).reduce((sum, c) => sum + c.size_kib * c.instances, 0) ?? 0);
+  // No Windows o clock máximo da AMD só aparece depois da autorização.
+  $effect(() => {
+    const max = privileged.data?.max_mhz;
+    if (max && info && !info.clocks.max_mhz) info.clocks.max_mhz = max;
+  });
+
   let scaleMhz = $derived(Math.max(info?.clocks.max_mhz ?? 0, live?.peak_mhz ?? 0, 1000));
 
   onMount(() => {
@@ -195,11 +201,9 @@
         {#if p.errors.length}
           <p class="hint muted">{t().cpu.someFailed(p.errors.join("; "))}</p>
         {/if}
-      {:else if isWindows}
-        <p class="muted">{t().cpu.windowsUnavailable}</p>
       {:else}
         <div class="unlock">
-          <p class="muted">{t().cpu.unlockText}</p>
+          <p class="muted">{isWindows ? t().cpu.unlockTextWindows : t().cpu.unlockText}</p>
           <button class="ghost" onclick={unlock} disabled={privileged.loading}>
             {privileged.loading ? t().cpu.waitingAuth : t().cpu.unlock}
           </button>
