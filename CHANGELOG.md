@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.6.0]
+
 ### Added
 
 - **Storage tab**: every drive with model, capacity, interface (NVMe with its PCIe link, SATA with the link speed, USB), temperature and the free space of each partition. The health comes from the drive's own SMART data: life left on SSDs, total written, power-on hours, unsafe shutdowns, read/write errors and bad sectors, summed up as Good, Caution or Bad. On Linux it is read through udisks2 without root (LUKS and LVM partitions are traced back to their drive); on Windows through the storage driver without administrator.
@@ -135,7 +137,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Anghievischi/silicio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Anghievischi/silicio/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Anghievischi/silicio/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Anghievischi/silicio/compare/v0.2.0...v0.3.0
