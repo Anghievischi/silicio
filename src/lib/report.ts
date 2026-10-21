@@ -17,7 +17,9 @@ import type {
   Peripherals,
   SpdModule,
   SystemInfo,
+  Upgrades,
 } from "$lib/types";
+import { gpuPath, memoryAction, memorySpec } from "$lib/upgrades.svelte";
 
 export type Format = "html" | "md" | "json";
 
@@ -43,6 +45,7 @@ interface Data {
   gpus: Gpu[];
   gpuLive: GpuLive[];
   peripherals: Peripherals | null;
+  upgrades: Upgrades | null;
   privileged: typeof privileged.data;
   bench: { date: string; single: number; multi: number; threads: number } | null;
   generatedAt: string;
@@ -51,7 +54,7 @@ interface Data {
 /** Lê todos os componentes; o que falhar fica de fora em vez de interromper o relatório. */
 export async function collect(): Promise<Data> {
   const get = <T>(cmd: string) => invoke<T>(cmd).catch(() => null);
-  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, peripherals] = await Promise.all([
+  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, peripherals, upgrades] = await Promise.all([
     get<SystemInfo>("system_info"),
     get<CpuInfo>("cpu_info"),
     get<CpuLive>("cpu_live"),
@@ -62,6 +65,7 @@ export async function collect(): Promise<Data> {
     get<Gpu[]>("gpu_info"),
     get<GpuLive[]>("gpu_live"),
     get<Peripherals>("peripherals_info"),
+    get<Upgrades>("upgrade_info"),
   ]);
   let bench: Data["bench"] = null;
   try {
@@ -80,6 +84,7 @@ export async function collect(): Promise<Data> {
     gpus: gpus ?? [],
     gpuLive: gpuLive ?? [],
     peripherals,
+    upgrades,
     privileged: privileged.data,
     bench,
     generatedAt: new Date().toISOString(),
@@ -374,6 +379,38 @@ function sections(d: Data): Section[] {
       });
     }
     out.push({ id: "peripherals", title: m.tabs.peripherals, blocks });
+  }
+
+  const up = d.upgrades;
+  if (up) {
+    const u = m.upgrades;
+    const memRows: [string, string][] = [[u.memory, memoryAction(up.memory)]];
+    if (up.memory.module_count > 0) {
+      memRows.push([u.memSpec, `${up.memory.module_count} × ${bytes(up.memory.module_bytes)} ${memorySpec(up.memory)}`]);
+      memRows.push([u.memTarget, bytes(up.memory.target_bytes)]);
+    }
+    const cpuRows: [string, string][] =
+      up.cpu.path === "socket"
+        ? [
+            [u.socket, or(up.cpu.socket)],
+            [u.ceiling, up.cpu.ceiling.join(" · ")],
+          ]
+        : [[u.cpu, up.cpu.path === "soldered" ? u.cpuSoldered : u.cpuUnknown]];
+    const gpuRows: [string, string][] = [[u.gpu, gpuPath(up.gpu)]];
+    if (up.gpu.path !== "none") {
+      gpuRows.push([u.tier, u.tiers[up.gpu.tier]]);
+      gpuRows.push([u.suggestions, up.gpu.suggestions.map((s) => `${s.name} (${u.lanes(s.lanes)})`).join(" · ")]);
+    }
+    out.push({
+      id: "upgrades",
+      title: m.tabs.upgrades,
+      blocks: [
+        { kind: "kv", rows: [[u.bestMove, u.top[up.top]]] },
+        { kind: "kv", title: u.gpu, rows: gpuRows },
+        { kind: "kv", title: u.memory, rows: memRows },
+        { kind: "kv", title: u.cpu, rows: cpuRows },
+      ],
+    });
   }
 
   const liveRows: [string, string][] = [];

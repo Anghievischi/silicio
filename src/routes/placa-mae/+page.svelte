@@ -2,9 +2,12 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import Card from "$lib/components/Card.svelte";
+  import CpuAdvice from "$lib/components/upgrades/CpuAdvice.svelte";
+  import GpuAdvice from "$lib/components/upgrades/GpuAdvice.svelte";
   import { hex, or, smbiosDate } from "$lib/format";
   import { i18n, t } from "$lib/i18n/index.svelte";
   import type { BoardInfo, PciDevice, PcieLink } from "$lib/types";
+  import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
 
   let info = $state<BoardInfo | null>(null);
   let error = $state<string | null>(null);
@@ -15,6 +18,7 @@
     invoke<BoardInfo>("board_info")
       .then((data) => (info = data))
       .catch((e) => (error = String(e)));
+    loadUpgrades();
   });
 
   const deviceName = (d: PciDevice | null) => (d ? [d.vendor, d.name ?? hex(d.device_id)].filter(Boolean).join(" ") : "—");
@@ -129,6 +133,16 @@
         <p class="hint muted">{t().board.linkHint}</p>
       {/if}
     </Card>
+
+    {#if upgrades.data}
+      <Card title={t().upgrades.gpu} span={2}>
+        <GpuAdvice gpu={upgrades.data.gpu} />
+      </Card>
+      <Card title="{t().upgrades.cpu} · {t().upgrades.socket}">
+        <CpuAdvice cpu={upgrades.data.cpu} />
+        <a class="more" href="/upgrades">{t().upgrades.more} →</a>
+      </Card>
+    {/if}
   </div>
 {/if}
 
@@ -151,7 +165,7 @@
   .warn {
     margin-left: 6px;
     padding: 1px 7px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     color: var(--warn);
     background: color-mix(in srgb, var(--warn) 14%, transparent);
@@ -160,5 +174,12 @@
   .hint {
     margin: 10px 0 0;
     font-size: 11px;
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 600;
   }
 </style>

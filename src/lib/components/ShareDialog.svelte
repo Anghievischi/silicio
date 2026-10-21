@@ -123,7 +123,7 @@
     max-height: calc(100vh - 48px);
     padding: 22px 24px;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
     box-shadow: 0 24px 80px rgb(0 0 0 / 0.45);
@@ -156,7 +156,7 @@
     display: block;
     width: 100%;
     aspect-ratio: 1200 / 630;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
   }
 
@@ -178,14 +178,14 @@
     display: flex;
     padding: 3px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
   }
 
   .segmented button {
     padding: 5px 12px;
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     background: none;
     font-size: 13px;
   }
@@ -212,9 +212,9 @@
   .primary {
     padding: 8px 14px;
     border: 0;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
   }
 
@@ -228,7 +228,7 @@
     gap: 8px;
     margin-top: 14px;
     padding: 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--good) 10%, var(--surface-2));
     border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border));
   }

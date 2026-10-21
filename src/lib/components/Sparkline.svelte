@@ -1,43 +1,36 @@
 <script lang="ts">
   let { values, max, capacity = 60 }: { values: number[]; max: number; capacity?: number } = $props();
 
-  const W = 300;
-  const H = 70;
-
-  let points = $derived(
-    values
-      .map((v, i) => {
-        const x = ((capacity - values.length + i) / (capacity - 1)) * W;
-        const y = H - (Math.min(v, max) / max) * (H - 4) - 2;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" "),
-  );
+  // Barras verticais, uma por amostra; as vagas ainda sem dado ficam à esquerda.
+  let bars = $derived([
+    ...Array(Math.max(capacity - values.length, 0)).fill(null),
+    ...values.slice(-capacity).map((v) => Math.max(Math.min(v / max, 1), 0) * 100),
+  ]);
 </script>
 
-<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" aria-hidden="true">
-  {#if values.length > 1}
-    <polygon points="{points} {W},{H} {points.split(' ')[0].split(',')[0]},{H}" />
-    <polyline {points} />
-  {/if}
-</svg>
+<div class="spark" aria-hidden="true">
+  {#each bars as h, i}
+    <span class:last={i === bars.length - 1} style:height="{h ?? 0}%"></span>
+  {/each}
+</div>
 
 <style>
-  svg {
-    width: 100%;
+  .spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
     height: 70px;
-    display: block;
+    border-bottom: 2px solid var(--border);
   }
 
-  polyline {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
-    stroke-linejoin: round;
+  span {
+    flex: 1;
+    min-height: 1px;
+    background: color-mix(in srgb, var(--accent) 55%, var(--surface-2));
+    transition: height 0.4s ease;
   }
 
-  polygon {
-    fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  span.last {
+    background: var(--accent);
   }
 </style>

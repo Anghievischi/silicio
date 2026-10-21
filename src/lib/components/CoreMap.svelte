@@ -22,11 +22,6 @@
     return mhz ? (mhz / 1000).toFixed(2) : "—";
   }
 
-  // Escala de calor: ocioso → cor de destaque → vermelho.
-  function heat(usage: number) {
-    if (usage < 50) return `color-mix(in oklab, var(--accent) ${Math.round(8 + usage * 1.1)}%, var(--surface-2))`;
-    return `color-mix(in oklab, var(--hot) ${Math.round((usage - 50) * 2)}%, color-mix(in oklab, var(--accent) 63%, var(--surface-2)))`;
-  }
 </script>
 
 <div class="map">
@@ -39,7 +34,7 @@
           <div
             class="core"
             class:hot={usage > 80}
-            style:background={heat(usage)}
+            style:--load="{usage}%"
             title="C{core.id} · {usage.toFixed(0)}%{core.kind ? ` · ${t().coreMap[core.kind]}` : ''}"
           >
             <div class="top">
@@ -79,13 +74,14 @@
     gap: 8px;
     padding: 10px;
     border: 1px dashed var(--border);
-    border-radius: 12px;
   }
 
   .group-name {
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warn);
   }
 
   .cores {
@@ -94,21 +90,24 @@
     gap: 8px;
   }
 
+  /* A carga enche o bloco de baixo para cima; acima de 80% a borda acende. */
   .core {
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding: 8px 9px;
-    border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
-    transition:
-      background 0.6s ease,
-      box-shadow 0.6s ease;
+    border: 2px solid var(--border);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--accent) 28%, var(--bg)) var(--load),
+      var(--bg) var(--load)
+    );
+    transition: border-color 0.6s ease;
   }
 
   .core.hot {
-    box-shadow: 0 0 14px color-mix(in srgb, var(--hot) 55%, transparent);
+    border-color: var(--accent);
   }
 
   .top {
@@ -125,7 +124,7 @@
 
   .kind {
     padding: 0 5px;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     font-size: 10px;
     font-weight: 700;
     background: color-mix(in srgb, var(--text) 18%, transparent);
@@ -136,8 +135,10 @@
   }
 
   .ghz {
-    font-size: 17px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1;
   }
 
   .threads {
@@ -149,8 +150,8 @@
 
   .threads span {
     flex: 1;
-    border-radius: 2px;
-    background: color-mix(in srgb, var(--text) 55%, transparent);
+    border-radius: var(--radius-sm);
+    background: var(--accent);
     transition: height 0.5s ease;
   }
 
@@ -166,8 +167,9 @@
   .scale {
     width: 90px;
     height: 6px;
-    border-radius: 3px;
-    background: linear-gradient(90deg, var(--surface-2), var(--accent), var(--hot));
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--bg), color-mix(in srgb, var(--accent) 28%, var(--bg)));
+    border: 1px solid var(--border);
   }
 
   .legend-text {

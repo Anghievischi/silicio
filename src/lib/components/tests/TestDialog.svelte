@@ -38,7 +38,7 @@
     max-height: calc(100vh - 48px);
     padding: 22px 24px;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text);
     box-shadow: 0 24px 80px rgb(0 0 0 / 0.45);

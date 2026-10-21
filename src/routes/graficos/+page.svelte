@@ -190,7 +190,7 @@
   .bar {
     height: 6px;
     margin-top: 14px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--border);
     overflow: hidden;
   }

@@ -309,7 +309,7 @@
     justify-content: center;
     width: 100%;
     border: 5px solid color-mix(in srgb, var(--text) 75%, var(--surface));
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 55%, #000), color-mix(in srgb, var(--accent) 15%, #000));
     color: #fff;
     box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
@@ -352,7 +352,7 @@
 
   .tag {
     padding: 1px 8px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: 600;
     background: var(--surface-2);
@@ -410,7 +410,7 @@
     width: 36px;
     height: 36px;
     flex-shrink: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     font-weight: 700;
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 15%, transparent);
@@ -479,7 +479,7 @@
 
   .bat {
     height: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     overflow: hidden;
   }
@@ -501,7 +501,7 @@
     gap: 12px;
     padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     text-align: left;
     transition:
@@ -519,7 +519,7 @@
     place-items: center;
     width: 34px;
     height: 34px;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 15%, transparent);
     font-weight: 700;

@@ -9,6 +9,7 @@ use hw::memory::{self, MemoryInfo, MemoryLive};
 use hw::peripherals::{self, Peripherals};
 use hw::privileged::PrivilegedInfo;
 use hw::spd::{self, SpdModule};
+use hw::upgrade::{self, Upgrades};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -73,6 +74,16 @@ async fn gpu_info(app: AppHandle) -> Result<Vec<Gpu>, String> {
 #[tauri::command]
 async fn gpu_live(app: AppHandle) -> Result<Vec<GpuLive>, String> {
     off_main(move || locked(&app, |s: &mut GpuSampler| s.live())).await
+}
+
+/// Sugestões de upgrade (placa de vídeo, memória, processador).
+#[tauri::command]
+async fn upgrade_info(app: AppHandle) -> Result<Upgrades, String> {
+    off_main(move || {
+        let gpus = locked(&app, |s: &mut GpuSampler| s.info());
+        upgrade::read(&gpus)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -245,12 +256,12 @@ async fn privileged_info() -> Result<PrivilegedInfo, String> {
     .await?
 }
 
-/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…8) e fecha.
+/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…9) e fecha.
 /// Usado pelo teste `tests/smoke.rs` para garantir que o app abre de verdade.
 fn smoke_test(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(4));
-        for tab in 1..=8 {
+        for tab in 1..=9 {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.eval(format!(
                     "window.dispatchEvent(new KeyboardEvent('keydown', {{ key: '{tab}', ctrlKey: true }}))"
@@ -291,14 +302,16 @@ pub fn run() {
     // `silicio --json` imprime o relatório e sai, sem abrir janela.
     if has_flag("--json") {
         let gpus = GpuSampler::new();
+        let gpu_list = gpus.info();
         let report = serde_json::json!({
             "cpu": cpu::read_static(),
             "board": board::read(),
             "memory": memory::read(),
             "spd": spd::read(),
-            "gpu": gpus.info(),
             "gpu_live": gpus.live(),
             "peripherals": peripherals::read(),
+            "upgrades": upgrade::read(&gpu_list),
+            "gpu": gpu_list,
         });
         println!(
             "{}",
@@ -347,6 +360,7 @@ pub fn run() {
             memory_live,
             spd_info,
             peripherals_info,
+            upgrade_info,
             privileged_info,
             gpu_info,
             gpu_live,

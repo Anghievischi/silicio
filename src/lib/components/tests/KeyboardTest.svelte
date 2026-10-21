@@ -147,7 +147,7 @@
     height: 38px;
     padding: 0 2px;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     font-size: 12px;
     font-weight: 600;
@@ -165,7 +165,7 @@
 
   .key.down {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     transform: translateY(1px);
   }
 

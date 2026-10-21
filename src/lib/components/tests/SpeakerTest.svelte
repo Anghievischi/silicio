@@ -90,7 +90,7 @@
     gap: 8px;
     padding: 22px 12px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     font-weight: 600;
     transition:

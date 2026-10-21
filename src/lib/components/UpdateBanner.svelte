@@ -85,9 +85,9 @@
   .primary {
     padding: 7px 14px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
   }
 

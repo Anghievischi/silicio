@@ -3,7 +3,8 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import Sidebar, { tabs } from "$lib/components/Sidebar.svelte";
+  import StatusBar from "$lib/components/StatusBar.svelte";
+  import Topbar, { tabs } from "$lib/components/Topbar.svelte";
   import ReportDialog from "$lib/components/ReportDialog.svelte";
   import ShareDialog from "$lib/components/ShareDialog.svelte";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
@@ -13,7 +14,7 @@
 
   let { children } = $props();
 
-  // Ctrl+1, Ctrl+2… alternam entre as abas implementadas; Ctrl+E exporta o relatório.
+  // Ctrl+1, Ctrl+2… alternam entre as abas; Ctrl+E exporta o relatório.
   function onKeydown(e: KeyboardEvent) {
     if (!e.ctrlKey || e.altKey || e.shiftKey) return;
     if (e.key.toLowerCase() === "e") {
@@ -21,7 +22,7 @@
       reportDialog.open = true;
       return;
     }
-    const href = tabs.filter((t) => t.href)[Number(e.key) - 1]?.href;
+    const href = tabs[Number(e.key) - 1]?.href;
     if (href) {
       e.preventDefault();
       goto(href);
@@ -41,11 +42,12 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="shell">
-  <Sidebar />
+  <Topbar />
   <main>
     <UpdateBanner />
     {@render children()}
   </main>
+  <StatusBar />
 </div>
 
 <ReportDialog />
@@ -54,21 +56,13 @@
 <style>
   .shell {
     display: grid;
-    grid-template-columns: 236px 1fr;
+    grid-template-rows: auto 1fr auto;
     height: 100vh;
   }
 
   main {
+    min-height: 0;
     overflow-y: auto;
-    padding: 28px 32px 40px;
-  }
-
-  @media (max-width: 760px) {
-    .shell {
-      grid-template-columns: 64px 1fr;
-    }
-    main {
-      padding: 20px 16px;
-    }
+    padding: 12px 12px 24px;
   }
 </style>
