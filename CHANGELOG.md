@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.6.1]
+
 ### Fixed
 
 - The Windows installer failed to build with the bundled PawnIO setup, so 0.6.0 shipped only for Linux. This version brings all of 0.6.0 to Windows.
@@ -141,7 +143,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Anghievischi/silicio/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Anghievischi/silicio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Anghievischi/silicio/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Anghievischi/silicio/compare/v0.3.0...v0.4.0
