@@ -73,7 +73,7 @@
   video {
     width: 100%;
     max-height: 55vh;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: #000;
     transform: scaleX(-1);
   }

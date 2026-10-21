@@ -3,9 +3,11 @@
   import { onMount } from "svelte";
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
+  import MemoryAdvice from "$lib/components/upgrades/MemoryAdvice.svelte";
   import { bytes, or } from "$lib/format";
   import { t } from "$lib/i18n/index.svelte";
   import type { MemoryInfo, MemoryLive } from "$lib/types";
+  import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
 
   const HISTORY = 60;
 
@@ -44,6 +46,7 @@
     invoke<MemoryInfo>("memory_info")
       .then((data) => (info = data))
       .catch((e) => (error = String(e)));
+    loadUpgrades();
 
     const tick = async () => {
       try {
@@ -131,6 +134,12 @@
       {/if}
     </Card>
 
+    {#if upgrades.data}
+      <Card title="{t().tabs.upgrades} · {t().upgrades.memory}" span={3}>
+        <MemoryAdvice memory={upgrades.data.memory} />
+      </Card>
+    {/if}
+
     <Card title={t().memory.modules} span={3}>
       {#if info.slots.length === 0}
         <p class="muted">{t().memory.noModules}</p>
@@ -179,9 +188,11 @@
 
   .big {
     display: block;
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--accent);
   }
 
   .right {
@@ -192,7 +203,7 @@
   .bar {
     height: 6px;
     margin-bottom: 10px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--border);
     overflow: hidden;
   }
@@ -214,7 +225,7 @@
   .checks li {
     padding: 10px 12px;
     border-left: 3px solid;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     font-size: 13px;
   }
@@ -239,7 +250,7 @@
 
   .slot {
     padding: 14px 16px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
   }
 

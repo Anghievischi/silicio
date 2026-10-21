@@ -2,11 +2,12 @@
   import { invoke } from "@tauri-apps/api/core";
   import { t } from "$lib/i18n/index.svelte";
   import { collect } from "$lib/report";
-  import { cardSvg, toPng, type Theme } from "$lib/share";
+  import { cardFonts, cardSvg, toPng, type Theme } from "$lib/share";
   import { shareDialog } from "$lib/system.svelte";
 
   let dialog: HTMLDialogElement;
   let data = $state<Awaited<ReturnType<typeof collect>> | null>(null);
+  let fonts = $state("");
   let theme = $state<Theme>("dark");
   let withBench = $state(true);
   let busy = $state(false);
@@ -15,7 +16,7 @@
   let error = $state<string | null>(null);
   const canCopy = typeof ClipboardItem !== "undefined";
 
-  let svg = $derived(data ? cardSvg(data, theme, withBench) : "");
+  let svg = $derived(data ? cardSvg(data, theme, withBench, fonts) : "");
   let preview = $derived(svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : "");
 
   $effect(() => {
@@ -23,8 +24,12 @@
       saved = error = null;
       data = null;
       dialog.showModal();
-      collect()
-        .then((d) => (data = d))
+      // As fontes chegam antes dos dados, para a prévia já sair com elas.
+      Promise.all([collect(), cardFonts()])
+        .then(([d, f]) => {
+          fonts = f;
+          data = d;
+        })
         .catch((e) => (error = String(e)));
     } else if (!shareDialog.open && dialog.open) {
       dialog.close();
@@ -122,8 +127,8 @@
     width: min(860px, calc(100vw - 32px));
     max-height: calc(100vh - 48px);
     padding: 22px 24px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
+    border: 2px solid var(--border);
+    border-radius: 0;
     background: var(--surface);
     color: var(--text);
     box-shadow: 0 24px 80px rgb(0 0 0 / 0.45);
@@ -144,7 +149,11 @@
 
   h2 {
     margin: 0 0 4px;
-    font-size: 20px;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
   }
 
   header p {
@@ -156,7 +165,7 @@
     display: block;
     width: 100%;
     aspect-ratio: 1200 / 630;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
   }
 
@@ -178,14 +187,14 @@
     display: flex;
     padding: 3px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
   }
 
   .segmented button {
     padding: 5px 12px;
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     background: none;
     font-size: 13px;
   }
@@ -212,9 +221,9 @@
   .primary {
     padding: 8px 14px;
     border: 0;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
   }
 
@@ -228,7 +237,7 @@
     gap: 8px;
     margin-top: 14px;
     padding: 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--good) 10%, var(--surface-2));
     border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border));
   }

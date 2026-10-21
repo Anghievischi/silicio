@@ -11,20 +11,21 @@
 
 <style>
   section {
-    padding: 18px 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    padding: 16px 18px;
+    border: 2px solid var(--border);
     background: var(--surface);
     min-width: 0;
   }
 
   h2 {
     margin: 0 0 14px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--text);
   }
 
   @media (max-width: 1000px) {

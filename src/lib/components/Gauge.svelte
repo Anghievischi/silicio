@@ -18,96 +18,67 @@
     color?: string;
   } = $props();
 
-  // O ponteiro e o número deslizam até o valor novo em vez de pular.
+  // O número e a barra deslizam até o valor novo em vez de pular.
   const current = Tween.of(() => value ?? 0, { duration: 700, easing: cubicOut });
 
-  // Arco de 270°, aberto embaixo.
-  const R = 42;
-  const ARC = 2 * Math.PI * R * 0.75;
-  let fraction = $derived(Math.min(Math.max(current.current / max, 0), 1));
+  // Medidor em blocos, como num painel de instrumentos.
+  const SEGMENTS = 20;
+  let lit = $derived(value == null ? 0 : Math.round(Math.min(Math.max(current.current / max, 0), 1) * SEGMENTS));
 </script>
 
 <div class="gauge">
-  <svg viewBox="0 0 100 100" aria-hidden="true">
-    <circle class="track" cx="50" cy="50" r={R} stroke-dasharray="{ARC} 999" />
-    {#if value != null}
-      <circle
-        class="fill"
-        cx="50"
-        cy="50"
-        r={R}
-        stroke={color}
-        stroke-dasharray="{ARC * fraction} 999"
-        style:filter="drop-shadow(0 0 6px {color})"
-      />
-    {/if}
-  </svg>
-  <div class="center">
-    <strong class="num">{value == null ? "—" : format(current.current)}</strong>
-    {#if sub}<span class="muted">{sub}</span>{/if}
-  </div>
   <span class="label">{label}</span>
+  <strong class="num">{value == null ? "—" : format(current.current)}</strong>
+  <div class="bar" aria-hidden="true">
+    {#each Array(SEGMENTS) as _, i}
+      <span style:background={i < lit ? color : undefined}></span>
+    {/each}
+  </div>
+  <span class="sub muted">{sub || " "}</span>
 </div>
 
 <style>
   .gauge {
-    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 8px;
     min-width: 0;
-  }
-
-  svg {
-    width: 100%;
-    max-width: 150px;
-    transform: rotate(135deg);
-    overflow: visible;
-  }
-
-  circle {
-    fill: none;
-    stroke-width: 7;
-    stroke-linecap: round;
-  }
-
-  .track {
-    stroke: var(--surface-2);
-  }
-
-  .fill {
-    transition: stroke 0.6s;
-  }
-
-  .center {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    aspect-ratio: 1;
-    max-width: 150px;
-    margin: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  strong {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .center span {
-    font-size: 11px;
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    background: var(--surface);
   }
 
   .label {
-    margin-top: -6px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--muted);
-    text-align: center;
+  }
+
+  strong {
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 0.9;
+  }
+
+  .bar {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 3px;
+    height: 12px;
+  }
+
+  .bar span {
+    background: var(--surface-2);
+    transition: background 0.3s;
+  }
+
+  .sub {
+    font-size: 11px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

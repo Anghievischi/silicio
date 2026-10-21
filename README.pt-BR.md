@@ -51,6 +51,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Benchmark de CPU (single/multi thread) e teste de estresse com detecção de throttling | ✅ | ✅ |
 | Exportação do relatório completo: página HTML fácil de ler, Markdown para fóruns e JSON bruto | Só TXT | ✅ |
 | Cartão de especificações para compartilhar (PNG, escuro ou claro) com a pontuação do benchmark | Validação online | ✅ |
+| Sugestões de upgrade: que placa de vídeo cabe, quanta memória adicionar, o processador mais rápido do soquete | ❌ | ✅ |
 | Telas: modelo, painel, tamanho, resolução nativa, faixa de atualização, HDR, data de fabricação (EDID) | ❌ | ✅ |
 | Dispositivos USB e Bluetooth com velocidade, consumo e função; bateria de periféricos (Linux) | ❌ | ✅ |
 | Dispositivos de áudio com o formato em uso; câmeras com resoluções e taxas de quadros | ❌ | ✅ |
@@ -76,6 +77,8 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | <img src="docs/screenshots/benchmark.png" alt="Aba Benchmark"> | <img src="docs/screenshots/relatorio.png" alt="Relatório HTML exportado"> |
 | **Periféricos** | **Cartão para compartilhar** |
 | <img src="docs/screenshots/perifericos.png" alt="Aba Periféricos"> | <img src="docs/screenshots/cartao.png" alt="Cartão de especificações"> |
+| **Upgrades** | |
+| <img src="docs/screenshots/upgrades.png" alt="Aba Upgrades"> | |
 
 </details>
 
@@ -210,6 +213,7 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 - [ ] Mais traduções (contribuições são bem-vindas)
 - [x] Aba Periféricos (telas, USB/Bluetooth, áudio, câmeras) com testes interativos
 - [x] Cartão de especificações para compartilhar
+- [x] Sugestões de upgrade e visual retrô com barra de janela própria
 - [ ] Formatos da câmera e bateria de periféricos no Windows
 - [ ] Módulo para Waybar, exportação Prometheus/MQTT, alertas de temperatura
 - [ ] Comparação de benchmark online

@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Upgrades** tab (Ctrl+9): suggestions computed from the detected hardware.
+  - **Graphics card**: whether a new card fits (desktop PCIe x16 slot, external GPU over Thunderbolt/USB4, or none on laptops without them), the slot's PCIe generation, a range matched to the CPU so it does not bottleneck, current examples with their lane count, the recommended power supply, a warning about x8 cards on PCIe 3.0 and Intel Arc left out on CPUs without Resizable BAR.
+  - **Memory**: add a matching module for dual channel, fill free slots or replace the kit, respecting the board's maximum, type, form factor and speed; soldered memory is recognized.
+  - **Processor**: socket, the fastest CPUs it accepts, end-of-life platforms and the BIOS check; soldered (BGA) CPUs on laptops and mini PCs.
+  - Also shown on the Overview (best next step), Motherboard and Memory tabs, in the exported report and in `--json`.
+
+### Changed
+
+- New retro-futuristic look: square panels, condensed display type for titles and numbers, monospace text, block meters, a top bar with numbered tabs and a status bar. Fonts are bundled, so it works offline.
+- New icon.
+- The shareable card and the exported HTML report follow the new look. The card embeds the app's fonts, so the PNG looks the same everywhere.
+- New screenshots in the README.
+- On Windows the window has its own title bar, with minimize, maximize and close buttons in the app's style.
+
 ## [0.3.0]
 
 ### Added

@@ -177,9 +177,11 @@
   }
 
   .big {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--accent);
   }
 
   .right {
@@ -190,7 +192,7 @@
   .bar {
     height: 6px;
     margin-top: 14px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--border);
     overflow: hidden;
   }

@@ -9,6 +9,7 @@
   import { i18n, t } from "$lib/i18n/index.svelte";
   import { reportDialog, shareDialog } from "$lib/system.svelte";
   import type { BoardInfo, CpuInfo, CpuLive, Gpu, GpuLive, MemoryInfo, MemoryLive } from "$lib/types";
+  import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
 
   const HISTORY = 60;
 
@@ -39,6 +40,7 @@
     invoke<BoardInfo>("board_info").then((d) => (board = d)).catch(() => {});
     invoke<MemoryInfo>("memory_info").then((d) => (memory = d)).catch(() => {});
     invoke<Gpu[]>("gpu_info").then((d) => (gpus = d)).catch(() => {});
+    loadUpgrades();
 
     const tick = async () => {
       const [c, m, g] = await Promise.allSettled([
@@ -81,31 +83,27 @@
   <div class="skeleton block-sk"></div>
 {:else}
   <section class="hero">
-    <svg class="die" viewBox="0 0 120 120" aria-hidden="true">
-      <rect x="22" y="22" width="76" height="76" rx="10" />
-      <rect class="core-grid" x="34" y="34" width="52" height="52" rx="4" />
-      {#each [36, 48, 60, 72, 84] as p}
-        <line x1={p} y1="8" x2={p} y2="22" /><line x1={p} y1="98" x2={p} y2="112" />
-        <line x1="8" y1={p} x2="22" y2={p} /><line x1="98" y1={p} x2="112" y2={p} />
-      {/each}
-    </svg>
     <div class="hero-text">
-      <span class="vendor">{cpu.vendor}</span>
+      <div class="tags">
+        <span class="vendor">{cpu.vendor}</span>
+        {#if cpu.codename}
+          <span class="tag">{cpu.codename.name}</span>
+          <span class="tag">{cpu.codename.microarch}</span>
+          <span class="tag">{cpu.codename.process}</span>
+        {/if}
+        <span class="tag num">{cpu.cores}C / {cpu.threads}T</span>
+      </div>
       <h1>{cpu.brand}</h1>
-      <p class="muted">
-        {#if cpu.codename}{cpu.codename.name} · {cpu.codename.microarch} · {cpu.codename.process} ·{/if}
-        {cpu.cores} / {cpu.threads} threads
-      </p>
       {#if systemName}
-        <p class="system">
-          {systemName}
-          {#if board?.system.chassis}<span class="tag">{t().board.chassis[board.system.chassis] ?? board.system.chassis}</span>{/if}
+        <p class="system muted">
+          &gt; {systemName}
+          {#if board?.system.chassis}<span class="chassis">[{t().board.chassis[board.system.chassis] ?? board.system.chassis}]</span>{/if}
         </p>
       {/if}
     </div>
     <div class="hero-actions">
-      <button class="share" onclick={() => (shareDialog.open = true)}>✦ {t().share.button}</button>
-      <button class="ghost export" onclick={() => (reportDialog.open = true)}>↓ {t().report.button}</button>
+      <button class="share" onclick={() => (shareDialog.open = true)}>{t().share.button}</button>
+      <button class="ghost" onclick={() => (reportDialog.open = true)}>{t().report.button} <kbd>Ctrl+E</kbd></button>
     </div>
   </section>
 
@@ -210,6 +208,14 @@
         <span class="more">{t().overview.details} →</span>
       </Card>
     </a>
+
+    {#if upgrades.data}
+      <a class="upgrade" href="/upgrades">
+        <span class="label">{t().upgrades.bestMove}</span>
+        <strong>{t().upgrades.top[upgrades.data.top]}</strong>
+        <span class="more">{t().upgrades.more} →</span>
+      </a>
+    {/if}
   </div>
 {/if}
 
@@ -217,77 +223,40 @@
   .hero {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 24px;
-    margin-bottom: 20px;
-    padding: 24px 28px;
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-    border-radius: 20px;
-    overflow: hidden;
-    background:
-      radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 55%),
-      radial-gradient(circle at 100% 120%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 50%),
-      var(--surface);
-  }
-
-  .die {
-    flex-shrink: 0;
-    width: 104px;
-    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 60%, transparent));
-  }
-
-  .die rect {
-    fill: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-    stroke: var(--accent);
-    stroke-width: 2;
-  }
-
-  .die .core-grid {
-    fill: color-mix(in srgb, var(--accent) 45%, var(--surface));
-    stroke-width: 1;
-    animation: pulse 3s ease-in-out infinite;
-  }
-
-  .die line {
-    stroke: color-mix(in srgb, var(--accent) 70%, var(--muted));
-    stroke-width: 3;
-    stroke-linecap: round;
-  }
-
-  @keyframes pulse {
-    50% {
-      fill: color-mix(in srgb, var(--accent) 70%, var(--surface));
-    }
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 12px;
+    padding: 24px;
+    border: 2px solid var(--border);
+    background: var(--surface);
   }
 
   .hero-text {
-    flex: 1;
+    flex: 1 1 420px;
     min-width: 0;
   }
 
-  .hero-actions {
+  .tags {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-self: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  .export {
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
-  }
-
-  .share {
-    padding: 8px 14px;
-    border: 0;
-    border-radius: 9px;
-    background: var(--accent);
-    color: #fff;
-    font-weight: 600;
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent);
+  .tag {
+    padding: 1px 8px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 
   .hero h1 {
-    font-size: 30px;
+    margin: 14px 0 10px;
+    font-size: clamp(40px, 6vw, 76px);
+    line-height: 0.88;
   }
 
   .hero p {
@@ -295,31 +264,83 @@
   }
 
   .system {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 6px !important;
-    font-weight: 500;
+    font-size: 12px;
   }
 
-  .tag {
-    padding: 1px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+  .chassis {
+    color: var(--warn);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 220px;
+  }
+
+  .share {
+    min-height: 40px;
+    padding: 6px 14px;
+    border: 2px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .share:hover {
+    filter: brightness(1.08);
+  }
+
+  .hero-actions .ghost {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 40px;
+  }
+
+  kbd {
+    font: inherit;
+    font-size: 10px;
+    color: var(--muted);
   }
 
   .gauges {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 12px;
-    margin-bottom: 16px;
-    padding: 18px 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    margin-bottom: 12px;
+  }
+
+  .upgrade {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+    padding: 14px 18px;
+    border: 2px solid var(--accent);
     background: var(--surface);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .upgrade .label {
+    padding: 2px 8px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .upgrade .more {
+    margin-left: auto;
+    padding-top: 0;
   }
 
   .activity {
@@ -329,9 +350,11 @@
   }
 
   .big {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--accent);
   }
 
   .activity span:last-child {
@@ -360,12 +383,11 @@
 
   .summary:hover :global(section) {
     border-color: var(--accent);
-    transform: translateY(-2px);
   }
 
   .summary strong {
-    font-size: 18px;
-    font-weight: 650;
+    font-size: 15px;
+    font-weight: 700;
   }
 
   .gpu {
@@ -387,19 +409,18 @@
   }
 
   .skeleton {
-    border-radius: var(--radius);
     background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.4s linear infinite;
   }
 
   .hero-sk {
-    height: 150px;
-    margin-bottom: 20px;
+    height: 190px;
+    margin-bottom: 12px;
   }
 
   .gauge-sk {
-    aspect-ratio: 1;
+    height: 130px;
   }
 
   .block-sk {
@@ -423,10 +444,6 @@
   }
 
   @media (max-width: 560px) {
-    .hero {
-      flex-direction: column;
-      align-items: flex-start;
-    }
     .gauges {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }

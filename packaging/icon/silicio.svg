@@ -1,15 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8a98ff"/>
-      <stop offset="1" stop-color="#3b45b0"/>
-    </linearGradient>
-  </defs>
-  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#g)"/>
-  <!-- trilhas de um chip nas bordas -->
-  <g stroke="#ffffff" stroke-opacity="0.28" stroke-width="28" stroke-linecap="round">
-    <path d="M300 64v90M420 64v90M540 64v90M660 64v90M300 870v90M420 870v90M540 870v90M660 870v90"/>
-    <path d="M64 300h90M64 420h90M64 540h90M64 660h90M870 300h90M870 420h90M870 540h90M870 660h90"/>
+  <!-- corpo do chip -->
+  <rect x="64" y="64" width="896" height="896" rx="150" fill="#1C1915" stroke="#3A342A" stroke-width="16"/>
+  <!-- pinos nas quatro bordas -->
+  <g fill="#A39883">
+    <rect x="341" y="172" width="40" height="88"/><rect x="442" y="172" width="40" height="88"/><rect x="542" y="172" width="40" height="88"/><rect x="643" y="172" width="40" height="88"/>
+    <rect x="341" y="764" width="40" height="88"/><rect x="442" y="764" width="40" height="88"/><rect x="542" y="764" width="40" height="88"/><rect x="643" y="764" width="40" height="88"/>
+    <rect x="172" y="341" width="88" height="40"/><rect x="172" y="442" width="88" height="40"/><rect x="172" y="542" width="88" height="40"/><rect x="172" y="643" width="88" height="40"/>
+    <rect x="764" y="341" width="88" height="40"/><rect x="764" y="442" width="88" height="40"/><rect x="764" y="542" width="88" height="40"/><rect x="764" y="643" width="88" height="40"/>
   </g>
-  <text x="512" y="640" text-anchor="middle" font-family="Inter, DejaVu Sans, sans-serif" font-weight="700" font-size="400" fill="#ffffff">Si</text>
+  <!-- die com canto chanfrado e a faixa de quatro cores -->
+  <path d="M330 260H764V764H260V330Z" fill="#EDE4D3"/>
+  <rect x="652" y="260" width="28" height="504" fill="#E5533D"/>
+  <rect x="680" y="260" width="28" height="504" fill="#F28C28"/>
+  <rect x="708" y="260" width="28" height="504" fill="#F2C14E"/>
+  <rect x="736" y="260" width="28" height="504" fill="#4FB3A9"/>
+  <!-- "Si" em blocos, sem depender de fonte -->
+  <g fill="#15130F">
+    <path d="M351 372H493V428H379V484H493V652H323V596H437V540H323V400Z"/>
+    <rect x="533" y="372" width="56" height="56"/>
+    <rect x="533" y="464" width="56" height="188"/>
+  </g>
 </svg>

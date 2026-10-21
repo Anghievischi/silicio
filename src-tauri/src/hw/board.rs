@@ -12,6 +12,10 @@ pub struct BoardInfo {
     pub chipset: Option<PciDevice>,
     pub southbridge: Option<PciDevice>,
     pub graphics: Vec<PciDevice>,
+    /// Geração PCIe do slot da placa de vídeo (a porta de 16 linhas mais rápida).
+    pub gpu_slot_gen: Option<u8>,
+    /// "thunderbolt" ou "usb4" quando há controlador que aceita GPU externa.
+    pub external_pcie: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -40,6 +44,7 @@ pub struct Bios {
 // Classes PCI (classe << 8 | subclasse).
 const HOST_BRIDGE: u32 = 0x0600;
 const ISA_BRIDGE: u32 = 0x0601;
+const PCI_BRIDGE: u32 = 0x0604;
 const DISPLAY: u32 = 0x03;
 
 pub fn read() -> BoardInfo {
@@ -67,6 +72,40 @@ pub fn read() -> BoardInfo {
             .filter(|d| d.class >> 8 == DISPLAY)
             .cloned()
             .collect(),
+        gpu_slot_gen: gpu_slot_gen(&devices),
+        external_pcie: external_pcie(&devices),
+    }
+}
+
+/// O slot x16 sai de uma porta raiz de 16 linhas; sem ela (notebooks), vale a
+/// porta mais rápida da plataforma.
+fn gpu_slot_gen(devices: &[PciDevice]) -> Option<u8> {
+    let links = || {
+        devices
+            .iter()
+            .filter(|d| d.class == PCI_BRIDGE)
+            .filter_map(|d| d.link.as_ref())
+    };
+    links()
+        .filter(|l| l.max_width == Some(16))
+        .filter_map(|l| l.max_gen)
+        .max()
+        .or_else(|| links().filter_map(|l| l.max_gen).max())
+}
+
+/// Controladores Thunderbolt/USB4 aparecem no PCI com o nome do padrão.
+fn external_pcie(devices: &[PciDevice]) -> Option<&'static str> {
+    let names: Vec<String> = devices
+        .iter()
+        .filter_map(|d| d.name.as_deref())
+        .map(str::to_lowercase)
+        .collect();
+    if names.iter().any(|n| n.contains("thunderbolt")) {
+        Some("thunderbolt")
+    } else if names.iter().any(|n| n.contains("usb4")) {
+        Some("usb4")
+    } else {
+        None
     }
 }
 

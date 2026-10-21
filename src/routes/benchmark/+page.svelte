@@ -265,7 +265,7 @@
 
   .bar {
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--border);
     overflow: hidden;
   }
@@ -299,7 +299,7 @@
   select {
     padding: 6px 8px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     color: var(--text);
     font: inherit;
@@ -308,9 +308,9 @@
   .primary {
     padding: 9px 18px;
     border: 0;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
   }
 
@@ -376,7 +376,7 @@
     margin: 12px 0 0;
     padding: 10px 12px;
     border-left: 3px solid var(--warn);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     font-size: 13px;
   }

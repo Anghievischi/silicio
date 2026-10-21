@@ -129,7 +129,7 @@
     place-items: center;
     height: 260px;
     border: 2px dashed color-mix(in srgb, var(--accent) 50%, var(--border));
-    border-radius: 14px;
+    border-radius: var(--radius-sm);
     background:
       radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
       var(--surface-2);
@@ -190,7 +190,7 @@
   .btn {
     padding: 6px 12px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface-2);
     font-size: 13px;
     font-weight: 600;
@@ -203,7 +203,7 @@
 
   .btn.down {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
 
   .small {

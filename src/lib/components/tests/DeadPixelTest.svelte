@@ -68,7 +68,7 @@
     transform: translateX(-50%);
     margin: 0;
     padding: 10px 16px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     background: rgb(0 0 0 / 0.7);
     color: #fff;
     font-size: 13px;

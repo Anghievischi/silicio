@@ -98,6 +98,8 @@ export interface BoardInfo {
   chipset: PciDevice | null;
   southbridge: PciDevice | null;
   graphics: PciDevice[];
+  gpu_slot_gen: number | null;
+  external_pcie: "thunderbolt" | "usb4" | null;
 }
 
 export interface Slot {
@@ -233,6 +235,51 @@ export interface StressStatus {
   running: boolean;
   seconds: number;
   units: number;
+}
+
+// Espelha src-tauri/src/hw/upgrade.rs.
+
+export interface GpuSuggestion {
+  name: string;
+  lanes: number;
+  vram_gb: number;
+}
+
+export interface Upgrades {
+  form: "desktop" | "laptop" | "compact" | "unknown";
+  top: "memory-dual-channel" | "memory-capacity" | "gpu" | "cpu" | "none";
+  gpu: {
+    path: "slot" | "external" | "none";
+    slot_gen: number | null;
+    external_port: "thunderbolt" | "usb4" | null;
+    current: string | null;
+    tier: "entry" | "mid" | "high";
+    psu_watts: number;
+    suggestions: GpuSuggestion[];
+    narrow_slot: boolean;
+    no_rebar: boolean;
+  };
+  memory: {
+    action: "soldered" | "dual-channel" | "add" | "replace" | "maxed" | "unknown";
+    kind: string | null;
+    form_factor: string | null;
+    speed_mts: number | null;
+    installed_bytes: number;
+    max_bytes: number | null;
+    slots_total: number;
+    slots_used: number;
+    module_count: number;
+    module_bytes: number;
+    target_bytes: number;
+  };
+  cpu: {
+    path: "soldered" | "socket" | "unknown";
+    socket: string | null;
+    ceiling: string[];
+    platform_end: boolean;
+    check_bios: boolean;
+    at_ceiling: boolean;
+  };
 }
 
 export interface SystemInfo {

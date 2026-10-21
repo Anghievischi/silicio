@@ -10,5 +10,6 @@ pub mod pci;
 pub mod peripherals;
 pub mod privileged;
 pub mod spd;
+pub mod upgrade;
 #[cfg(windows)]
 pub mod wmi;

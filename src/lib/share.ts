@@ -1,43 +1,93 @@
 // Cartão de especificações para compartilhar: um SVG 1200×630 (tamanho de
-// prévia em redes sociais) convertido em PNG.
+// prévia em redes sociais) convertido em PNG, no visual de ficha técnica do app.
 
 import { bytes, displayName, ghz, size } from "$lib/format";
 import { t } from "$lib/i18n/index.svelte";
 import type { collect } from "$lib/report";
+import display700 from "@fontsource/big-shoulders-display/files/big-shoulders-display-latin-700-normal.woff2?url";
+import display900 from "@fontsource/big-shoulders-display/files/big-shoulders-display-latin-900-normal.woff2?url";
+import mono400 from "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url";
+import mono700 from "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2?url";
 
 type Data = Awaited<ReturnType<typeof collect>>;
 
 export const WIDTH = 1200;
 export const HEIGHT = 630;
 
-const ACCENTS: Record<string, string> = { AMD: "#ff5a4f", Intel: "#3b9dff" };
+const STRIPES = ["#e5533d", "#f28c28", "#f2c14e", "#4fb3a9"];
+const ACCENTS: Record<string, { bright: string; deep: string }> = {
+  AMD: { bright: "#f28c28", deep: "#b3560d" },
+  Intel: { bright: "#4fb3a9", deep: "#2f7f77" },
+};
 
 const THEMES = {
-  dark: { bg: "#0d0f13", tile: "#151820", border: "#262b37", text: "#e7e9ee", muted: "#8a91a1" },
-  light: { bg: "#f4f5f8", tile: "#ffffff", border: "#dfe2e9", text: "#161a22", muted: "#646b7a" },
+  dark: { bg: "#15130f", tile: "#1c1915", border: "#3a342a", text: "#ede4d3", muted: "#a39883", footer: "#0d0c09" },
+  light: { bg: "#ede4d3", tile: "#f6f0e4", border: "#c9bba3", text: "#15130f", muted: "#5a4e3c", footer: "#15130f" },
 };
 
 export type Theme = keyof typeof THEMES;
+
+const DISPLAY = `font-family="Big Shoulders Display, 'Arial Narrow', sans-serif"`;
+const MONO = `font-family="JetBrains Mono, ui-monospace, monospace"`;
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 /** SVG não quebra linha: corta o texto com reticências. */
 const fit = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
 
-export function cardSvg(d: Data, theme: Theme, withBench: boolean): string {
+// Largura média de um caractere em relação ao tamanho da fonte, para o layout.
+const DISPLAY_EM = 0.46;
+const MONO_EM = 0.6;
+
+let fontCss: Promise<string> | null = null;
+
+/**
+ * Um SVG desenhado como imagem não enxerga as fontes da página, então as
+ * fontes do app vão embutidas no próprio SVG.
+ */
+export function cardFonts(): Promise<string> {
+  fontCss ??= Promise.all(
+    [
+      ["Big Shoulders Display", 700, display700],
+      ["Big Shoulders Display", 900, display900],
+      ["JetBrains Mono", 400, mono400],
+      ["JetBrains Mono", 700, mono700],
+    ].map(async ([family, weight, url]) => {
+      const buffer = await (await fetch(url as string)).arrayBuffer();
+      let binary = "";
+      for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte);
+      return `@font-face{font-family:"${family}";font-weight:${weight};src:url(data:font/woff2;base64,${btoa(binary)}) format("woff2")}`;
+    }),
+  )
+    .then((faces) => faces.join(""))
+    .catch(() => "");
+  return fontCss;
+}
+
+/** Marca do app: o die do ícone com a faixa de quatro cores. */
+const mark = (x: number, y: number, s: number) => `<svg x="${x}" y="${y}" width="${s}" height="${s}" viewBox="160 160 704 704">
+  <rect x="160" y="160" width="704" height="704" fill="#1c1915"/>
+  <path d="M330 260H764V764H260V330Z" fill="#ede4d3"/>
+  ${STRIPES.map((c, i) => `<rect x="${652 + i * 28}" y="260" width="28" height="504" fill="${c}"/>`).join("")}
+  <g fill="#15130f"><path d="M351 372H493V428H379V484H493V652H323V596H437V540H323V400Z"/><rect x="533" y="372" width="56" height="56"/><rect x="533" y="464" width="56" height="188"/></g>
+</svg>`;
+
+export function cardSvg(d: Data, theme: Theme, withBench: boolean, fonts = ""): string {
   const m = t().share;
   const c = THEMES[theme];
   const cpu = d.cpu;
-  const accent = ACCENTS[cpu?.vendor ?? ""] ?? "#7c8cff";
-  const font = `font-family="Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif"`;
+  const vendorAccent = ACCENTS[cpu?.vendor ?? ""] ?? ACCENTS.AMD;
+  const accent = theme === "dark" ? vendorAccent.bright : vendorAccent.deep;
 
-  const brand = cpu?.brand ?? "—";
-  // O nome não pode invadir o desenho do chip à direita.
-  const brandSize = brand.length > 30 ? 40 : 50;
-  const sub = cpu?.codename ? [cpu.codename.name, cpu.codename.microarch, cpu.codename.process].join(" · ") : (cpu?.vendor ?? "");
+  // "AMD Ryzen 7 5700U with Radeon Graphics": o complemento vai para a segunda linha.
+  const [brand, extra] = (cpu?.brand ?? "—").split(/\s+(?=with\s)/i);
+  const brandSize = Math.min(112, Math.floor(1080 / (brand.length * DISPLAY_EM)));
+
   const l3 = cpu?.caches.filter((x) => x.level === 3).reduce((sum, x) => sum + x.size_kib * x.instances, 0) ?? 0;
-  const pills = [
-    cpu ? m.cores(cpu.cores, cpu.threads) : null,
+  const facts = [
+    cpu?.vendor,
+    cpu?.codename?.microarch,
+    cpu ? `${cpu.cores}C / ${cpu.threads}T` : null,
     cpu?.clocks.max_mhz ? m.upTo(ghz(cpu.clocks.max_mhz)) : null,
     l3 ? `L3 ${size(l3)}` : null,
   ].filter((x): x is string => !!x);
@@ -64,83 +114,62 @@ export function cardSvg(d: Data, theme: Theme, withBench: boolean): string {
       : [m.system, d.system.os ?? "—", d.system.arch],
   ];
 
-  const tileW = (WIDTH - 120 - 3 * 20) / 4;
+  const tileW = (WIDTH - 120 - 3 * 16) / 4;
+  const valueChars = Math.floor((tileW - 36) / (26 * DISPLAY_EM));
+  const detailChars = Math.floor((tileW - 36) / (13 * MONO_EM));
   const tileSvg = tiles
     .map(([label, value, detail], i) => {
-      const x = 60 + i * (tileW + 20);
-      return `<g transform="translate(${x} 346)">
-  <rect width="${tileW}" height="128" rx="18" fill="${c.tile}" stroke="${c.border}"/>
-  <rect x="20" y="22" width="26" height="4" rx="2" fill="${accent}"/>
-  <text x="20" y="52" ${font} font-size="13" font-weight="700" letter-spacing="1.5" fill="${c.muted}">${esc(label.toUpperCase())}</text>
-  <text x="20" y="84" ${font} font-size="21" font-weight="700" fill="${c.text}">${esc(fit(value, 20))}</text>
-  <text x="20" y="110" ${font} font-size="14" fill="${c.muted}">${esc(fit(detail, 30))}</text>
+      const x = 60 + i * (tileW + 16);
+      return `<g transform="translate(${x} 352)">
+  <rect x="1" y="1" width="${tileW - 2}" height="122" fill="${c.tile}" stroke="${c.border}" stroke-width="2"/>
+  <rect x="18" y="20" width="10" height="10" fill="${accent}"/>
+  <text x="36" y="30" ${MONO} font-size="12" font-weight="700" letter-spacing="1.5" fill="${c.muted}">${esc(fit(label.toUpperCase(), 22))}</text>
+  <text x="18" y="74" ${DISPLAY} font-size="30" font-weight="900" fill="${c.text}">${esc(fit(value.toUpperCase(), valueChars))}</text>
+  <text x="18" y="102" ${MONO} font-size="13" fill="${c.muted}">${esc(fit(detail, detailChars))}</text>
 </g>`;
     })
     .join("\n");
 
-  let pillX = 60;
-  const pillY = 178 + brandSize + 58;
-  const pillSvg = pills
-    .map((p) => {
-      const w = p.length * 9 + 32;
-      const g = `<g transform="translate(${pillX} ${pillY})"><rect width="${w}" height="38" rx="19" fill="${accent}" fill-opacity="0.14" stroke="${accent}" stroke-opacity="0.45"/><text x="${w / 2}" y="25" text-anchor="middle" ${font} font-size="16" font-weight="650" fill="${c.text}">${esc(p)}</text></g>`;
-      pillX += w + 12;
-      return g;
-    })
-    .join("");
+  // Faixa de quatro cores sobre o rodapé, a assinatura do app.
+  const stripes = STRIPES.map((s, i) => `<rect x="0" y="${514 + i * 9}" width="${WIDTH}" height="9" fill="${s}"/>`).join("");
 
-  const bench = withBench && d.bench;
-  const bottom = bench
-    ? `<g transform="translate(60 496)">
-  <text y="22" ${font} font-size="13" font-weight="700" letter-spacing="1.5" fill="${c.muted}">${esc(m.bench.toUpperCase())}</text>
-  <text y="62" ${font} font-size="34" font-weight="800" fill="${accent}">${Math.round(d.bench!.single)}</text>
-  <text x="${String(Math.round(d.bench!.single)).length * 21 + 10}" y="62" ${font} font-size="16" fill="${c.muted}">${esc(m.single)}</text>
-  <text x="300" y="62" ${font} font-size="34" font-weight="800" fill="${accent}">${Math.round(d.bench!.multi)}</text>
-  <text x="${300 + String(Math.round(d.bench!.multi)).length * 21 + 10}" y="62" ${font} font-size="16" fill="${c.muted}">${esc(m.multi(d.bench!.threads))}</text>
-</g>`
-    : `<text x="60" y="548" ${font} font-size="18" fill="${c.muted}">${esc(fit([d.system.os, d.system.arch].filter(Boolean).join(" · "), 70))}</text>`;
-
-  // Chip estilizado, o mesmo desenho da Visão geral.
-  const pins = [0, 1, 2, 3, 4]
-    .map((i) => {
-      const p = 26 + i * 18;
-      return `<line x1="${p}" y1="2" x2="${p}" y2="18"/><line x1="${p}" y1="146" x2="${p}" y2="162"/><line x1="2" y1="${p}" x2="18" y2="${p}"/><line x1="146" y1="${p}" x2="162" y2="${p}"/>`;
-    })
-    .join("");
+  // Rodapé: pontuação do benchmark (ou o sistema), montado da esquerda para a direita.
+  let x = 60;
+  const run: string[] = [];
+  const put = (text: string, attrs: string, em: number, fontSize: number, gap: number) => {
+    run.push(`<text x="${x}" ${attrs}>${esc(text)}</text>`);
+    x += text.length * fontSize * em + gap;
+  };
+  if (withBench && d.bench) {
+    const score = `y="600" ${DISPLAY} font-size="44" font-weight="900" fill="${vendorAccent.bright}"`;
+    const caption = `y="598" ${MONO} font-size="13" fill="#a39883"`;
+    put(m.bench.toUpperCase(), `y="590" ${MONO} font-size="12" font-weight="700" letter-spacing="1.5" fill="#a39883"`, MONO_EM + 0.12, 12, 28);
+    put(String(Math.round(d.bench.single)), score, DISPLAY_EM, 44, 10);
+    put(m.single, caption, MONO_EM, 13, 30);
+    put(String(Math.round(d.bench.multi)), score, DISPLAY_EM, 44, 10);
+    put(m.multi(d.bench.threads), caption, MONO_EM, 13, 0);
+  } else {
+    put(fit(["> ", d.system.os, d.system.arch].filter(Boolean).join(" "), 60), `y="596" ${MONO} font-size="15" fill="#a39883"`, MONO_EM, 15, 0);
+  }
+  const footerLeft = run.join("\n");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
-<defs>
-  <radialGradient id="glow1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(120 40) scale(760 520)">
-    <stop offset="0" stop-color="${accent}" stop-opacity="${theme === "dark" ? 0.32 : 0.2}"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="glow2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1060 220) scale(380)">
-    <stop offset="0" stop-color="${accent}" stop-opacity="0.28"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
-  </radialGradient>
-  <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${accent}" stop-opacity="0.55"/>
-  </linearGradient>
-</defs>
+<style>${fonts}</style>
 <rect width="${WIDTH}" height="${HEIGHT}" fill="${c.bg}"/>
-<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow1)"/>
-<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow2)"/>
-<g transform="translate(60 48)">
-  <rect width="44" height="44" rx="12" fill="url(#mark)"/>
-  <text x="22" y="29" text-anchor="middle" ${font} font-size="18" font-weight="800" fill="#fff">Si</text>
-  <text x="58" y="30" ${font} font-size="22" font-weight="700" fill="${c.text}">Silício</text>
+${mark(60, 44, 40)}
+<text x="114" y="76" ${DISPLAY} font-size="32" font-weight="900" letter-spacing="3" fill="${c.text}">SILÍCIO</text>
+<g transform="translate(${WIDTH - 60} 44)">
+  <rect x="${-(m.specSheet.length * (13 * MONO_EM + 1) + 34)}" y="1" width="${m.specSheet.length * (13 * MONO_EM + 1) + 33}" height="38" fill="none" stroke="${c.text}" stroke-width="2"/>
+  <text x="-17" y="26" text-anchor="end" ${MONO} font-size="13" font-weight="700" letter-spacing="1" fill="${c.text}">${esc(m.specSheet.toUpperCase())}</text>
 </g>
-<g transform="translate(980 140)" stroke="${accent}" stroke-width="5" stroke-linecap="round" opacity="0.95">
-  ${pins}
-  <rect x="18" y="18" width="128" height="128" rx="16" fill="${accent}" fill-opacity="0.18" stroke-width="3"/>
-  <rect x="44" y="44" width="76" height="76" rx="8" fill="${accent}" fill-opacity="0.55" stroke-width="2"/>
-</g>
-<text x="60" y="178" ${font} font-size="15" font-weight="800" letter-spacing="2" fill="${accent}">${esc((cpu?.vendor ?? "").toUpperCase())}</text>
-<text x="60" y="${178 + brandSize}" ${font} font-size="${brandSize}" font-weight="800" letter-spacing="-1" fill="${c.text}">${esc(fit(brand, 38))}</text>
-<text x="60" y="${178 + brandSize + 36}" ${font} font-size="20" fill="${c.muted}">${esc(fit(sub, 70))}</text>
-${pillSvg}
+<text x="60" y="150" ${MONO} font-size="14" font-weight="700" letter-spacing="1.5" fill="${c.muted}">${esc(fit(facts.join(" · ").toUpperCase(), 70))}</text>
+<text x="56" y="${150 + brandSize * 0.92 + 12}" ${DISPLAY} font-size="${brandSize}" font-weight="900" fill="${c.text}">${esc(brand.toUpperCase())}</text>
+${extra ? `<text x="60" y="${150 + brandSize * 0.92 + 56}" ${DISPLAY} font-size="34" font-weight="700" letter-spacing="1" fill="${c.muted}">${esc(fit(extra.toUpperCase(), 60))}</text>` : ""}
 ${tileSvg}
-${bottom}
-<text x="${WIDTH - 60}" y="548" text-anchor="end" ${font} font-size="15" font-weight="600" fill="${c.muted}">github.com/Anghievischi/silicio</text>
-<rect x="0" y="${HEIGHT - 8}" width="${WIDTH}" height="8" fill="${accent}"/>
+${stripes}
+<rect x="0" y="550" width="${WIDTH}" height="${HEIGHT - 550}" fill="${c.footer}"/>
+${footerLeft}
+<text x="${WIDTH - 60}" y="596" text-anchor="end" ${MONO} font-size="14" fill="#a39883">github.com/Anghievischi/silicio</text>
 </svg>`;
 }
 

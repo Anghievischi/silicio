@@ -51,6 +51,7 @@ These links always point to the latest version. Older versions are on the [relea
 | CPU benchmark (single/multi thread) and stress test with throttling detection | ✅ | ✅ |
 | Full report export: readable HTML page, Markdown for forums, raw JSON | TXT only | ✅ |
 | Shareable specs card (PNG, dark or light) with benchmark score | Online validation | ✅ |
+| Upgrade suggestions: which graphics card fits, how much memory to add, the socket's fastest CPU | ❌ | ✅ |
 | Displays: model, panel, size, native resolution, refresh range, HDR, manufacture date (EDID) | ❌ | ✅ |
 | USB and Bluetooth devices with speed, power and function; peripheral batteries (Linux) | ❌ | ✅ |
 | Audio devices with current format; cameras with resolutions and frame rates | ❌ | ✅ |
@@ -76,6 +77,8 @@ These links always point to the latest version. Older versions are on the [relea
 | <img src="docs/screenshots/benchmark.png" alt="Benchmark tab"> | <img src="docs/screenshots/relatorio.png" alt="Exported HTML report"> |
 | **Peripherals** | **Shareable card** |
 | <img src="docs/screenshots/perifericos.png" alt="Peripherals tab"> | <img src="docs/screenshots/cartao.png" alt="Shareable specs card"> |
+| **Upgrades** | |
+| <img src="docs/screenshots/upgrades.png" alt="Upgrades tab"> | |
 
 </details>
 
@@ -236,6 +239,7 @@ docs/                         CPU-Z analysis and screenshots
 - [ ] More translations (contributions welcome)
 - [x] Peripherals tab (displays, USB/Bluetooth, audio, cameras) with interactive tests
 - [x] Shareable specs card
+- [x] Upgrade suggestions and a retro look with a custom title bar
 - [ ] Camera formats and peripheral batteries on Windows
 - [ ] Waybar module, Prometheus/MQTT export, temperature alerts
 - [ ] Online benchmark comparison
