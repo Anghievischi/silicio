@@ -1,6 +1,6 @@
 {
   "name": "silicio",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Silício — alternativa moderna ao CPU-Z",
   "type": "module",
   "scripts": {
