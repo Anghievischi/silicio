@@ -13,7 +13,6 @@ Uso: python3 packaging/scripts/update-manifests.py 0.1.2
 import hashlib
 import json
 import shutil
-import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -126,10 +125,32 @@ package() {{
 }}
 """
     (folder / "PKGBUILD").write_text(pkgbuild, encoding="utf-8")
-    if shutil.which("makepkg"):
-        srcinfo = subprocess.run(["makepkg", "--printsrcinfo"], cwd=folder, capture_output=True, text=True, check=True)
-        (folder / ".SRCINFO").write_text(srcinfo.stdout, encoding="utf-8")
+    (folder / ".SRCINFO").write_text(srcinfo(version, deb_hash), encoding="utf-8")
     print(f"escrito {folder}")
+
+
+def srcinfo(version: str, deb_hash: str) -> str:
+    """O mesmo que `makepkg --printsrcinfo`, sem precisar do makepkg (roda no CI em Ubuntu)."""
+    fields = [
+        ("pkgdesc", DESCRIPTION),
+        ("pkgver", version),
+        ("pkgrel", "1"),
+        ("url", f"https://github.com/{REPO}"),
+        ("arch", "x86_64"),
+        ("license", "MIT"),
+        ("depends", "webkit2gtk-4.1"),
+        ("depends", "gtk3"),
+        ("depends", "polkit"),
+        ("optdepends", "i2c-tools: SPD tab on systems where the driver is not loaded automatically"),
+        ("provides", "silicio"),
+        ("conflicts", "silicio"),
+        ("source", f"Silicio_{version}_amd64.deb::https://github.com/{REPO}/releases/download/v{version}/Silicio_{version}_amd64.deb"),
+        ("source", f"LICENSE::https://raw.githubusercontent.com/{REPO}/v{version}/LICENSE"),
+        ("sha256sums", deb_hash),
+        ("sha256sums", "SKIP"),
+    ]
+    body = "".join(f"\t{key} = {value}\n" for key, value in fields)
+    return f"pkgbase = silicio-bin\n{body}\npkgname = silicio-bin\n"
 
 
 def main() -> None:
