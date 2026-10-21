@@ -95,7 +95,7 @@ fn read_device(path: &Path) -> Option<PciDevice> {
     })
 }
 
-fn read_link(path: &Path) -> Option<PcieLink> {
+pub(crate) fn read_link(path: &Path) -> Option<PcieLink> {
     let text = |file: &str| {
         fs::read_to_string(path.join(file))
             .ok()
@@ -177,6 +177,10 @@ fn short_vendor(name: &str) -> String {
     }
 }
 
+/// Link PCIe de um nó do Configuration Manager (usado pelos discos NVMe).
+#[cfg(windows)]
+pub(crate) use windows_pci::link as windows_link;
+
 #[cfg(windows)]
 mod windows_pci {
     use super::{PciDevice, PcieLink};
@@ -201,7 +205,7 @@ mod windows_pci {
     const MAX_LINK_WIDTH: DEVPROPKEY = pci_key(12);
 
     /// No Windows a velocidade do link vem como a geração (1 = 2,5 GT/s … 5 = 32 GT/s).
-    fn link(devinst: u32) -> Option<PcieLink> {
+    pub fn link(devinst: u32) -> Option<PcieLink> {
         let field = |key: &DEVPROPKEY| {
             number(devinst, key)
                 .filter(|v| (1..=64).contains(v))

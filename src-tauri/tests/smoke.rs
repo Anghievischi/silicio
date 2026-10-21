@@ -65,7 +65,7 @@ fn abre_a_janela() {
         .spawn()
         .expect("executa o silicio");
 
-    // O modo --smoke-test fecha sozinho depois de ~28 s.
+    // O modo --smoke-test fecha sozinho depois de ~34 s.
     let start = Instant::now();
     let status = loop {
         if let Some(status) = child.try_wait().expect("consulta o processo") {

@@ -45,9 +45,11 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Placa-mãe, BIOS, chipset, link PCIe de cada GPU | ✅ | ✅ |
 | Tipo, canais e frequência da memória, módulos instalados | ✅ | ✅ |
 | Diagnóstico de memória (single channel, XMP desligado, kits diferentes) | ❌ | ✅ |
-| SPD: fabricante, modelo, data, tabela de timings JEDEC | ✅ | ✅ DDR4 ² |
-| Perfis XMP / EXPO | ✅ | Só detecção |
+| SPD: fabricante, modelo, data, tabela de timings JEDEC | ✅ | ✅ DDR4 e DDR5 ² |
+| Perfis XMP / EXPO com velocidade, tensão e timings | ✅ | ✅ ² |
 | Gráficos: clocks, uso, temperatura, consumo, VRAM | ✅ | ✅ |
+| Discos: saúde (vida útil restante do SSD, setores ruins), temperatura, total gravado, horas ligado, interface PCIe/SATA e espaço livre de cada partição | ❌ | ✅ |
+| Bateria do notebook: desgaste em relação à capacidade original, ciclos, carga, consumo e tempo restante | ❌ | ✅ |
 | Benchmark de CPU (single/multi thread) e teste de estresse com detecção de throttling | ✅ | ✅ |
 | Exportação do relatório completo: página HTML fácil de ler, Markdown para fóruns e JSON bruto | Só TXT | ✅ |
 | Cartão de especificações para compartilhar (PNG, escuro ou claro) com a pontuação do benchmark | Validação online | ✅ |
@@ -61,7 +63,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Interface em português e inglês, com troca ao vivo | Vários idiomas | ✅ |
 
 ¹ Lê registradores da CPU por um pequeno helper com root, iniciado via `pkexec`; o sistema pede sua senha uma vez.
-² DDR5 é reconhecido, mas ainda não decodificado.
+² No Linux. O Windows não oferece um jeito seguro de ler o SPD sem acessar o barramento SMBus direto.
 
 <details>
 <summary><b>Mais screenshots</b></summary>
@@ -100,7 +102,7 @@ scoop install silicio
 
 O Windows 10 e 11 já trazem o WebView2 que o app usa. Se faltar, o instalador baixa sozinho.
 
-Temperatura do processador, clock máximo (AMD), tensão e bus real usam o driver **[PawnIO](https://pawnio.eu)** (`winget install namazso.PawnIO`). Com ele instalado, clique em **Desbloquear** na aba Processador e autorize no UAC.
+Temperatura do processador, clock máximo (AMD), tensão e bus real usam o driver **[PawnIO](https://pawnio.eu)**. O instalador oferece instalá-lo no final (na versão portátil, instale à parte: `winget install namazso.PawnIO`). Com ele instalado, clique em **Desbloquear** na aba Processador e autorize no UAC.
 
 Se o app não abrir, procure o arquivo `silicio-crash.log` na pasta temporária (digite `%TEMP%` na barra de endereço do Explorer) e anexe num [relato de bug](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
 
@@ -165,6 +167,8 @@ O Silício lê o hardware só por interfaces públicas:
 | EEPROM SPD | drivers `ee1004` / `spd5118` | — |
 | Tensão, bus real, clock máximo, soquete | MSR + SMBIOS bruto pelo helper com root | MSR pelo PawnIO + SMBIOS do firmware |
 | Gráficos | sysfs de `amdgpu`, `i915`, `xe` + NVML | WMI + NVML |
+| Discos e SMART | `/sys/block` + udisks2 (D-Bus), sem root | `IOCTL_STORAGE_QUERY_PROPERTY`, sem administrador |
+| Bateria do notebook | `/sys/class/power_supply` | `IOCTL_BATTERY_QUERY_*` |
 
 Codinomes, tabelas JEDEC e códigos de fabricantes de memória vêm de documentação pública e foram escritos do zero.
 
@@ -218,6 +222,7 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 - [x] Sugestões de upgrade e visual retrô com barra de janela própria
 - [x] Formatos da câmera e bateria de periféricos Bluetooth no Windows
 - [x] Aviso de processador muito quente
+- [x] Abas Armazenamento (saúde dos discos) e Bateria
 - [ ] Módulo para Waybar, exportação Prometheus/MQTT
 - [ ] Comparação de benchmark online
 

@@ -45,9 +45,11 @@ These links always point to the latest version. Older versions are on the [relea
 | Motherboard, BIOS, chipset, PCIe link of each GPU | ✅ | ✅ |
 | Memory type, channels, frequency, installed modules | ✅ | ✅ |
 | Memory diagnostics (single channel, XMP disabled, mixed kits) | ❌ | ✅ |
-| SPD: manufacturer, part number, date, JEDEC timings table | ✅ | ✅ DDR4 ² |
-| XMP / EXPO profiles | ✅ | Detection only |
+| SPD: manufacturer, part number, date, JEDEC timings table | ✅ | ✅ DDR4 and DDR5 ² |
+| XMP / EXPO profiles with speed, voltage and timings | ✅ | ✅ ² |
 | Graphics: clocks, load, temperature, power, VRAM | ✅ | ✅ |
+| Drives: health (SSD life left, bad sectors), temperature, total written, power-on hours, PCIe/SATA interface and free space of each partition | ❌ | ✅ |
+| Laptop battery: wear against the design capacity, cycles, charge, power draw and time left | ❌ | ✅ |
 | CPU benchmark (single/multi thread) and stress test with throttling detection | ✅ | ✅ |
 | Full report export: readable HTML page, Markdown for forums, raw JSON | TXT only | ✅ |
 | Shareable specs card (PNG, dark or light) with benchmark score | Online validation | ✅ |
@@ -61,7 +63,7 @@ These links always point to the latest version. Older versions are on the [relea
 | Interface in English and Portuguese, switchable live | Several languages | ✅ |
 
 ¹ Reads model-specific registers through a small root helper started with `pkexec`; the system asks for your password once.
-² DDR5 is detected but not decoded yet.
+² On Linux. Windows offers no safe way to read the SPD without touching the SMBus directly.
 
 <details>
 <summary><b>More screenshots</b></summary>
@@ -100,7 +102,7 @@ scoop install silicio
 
 Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
 
-CPU temperature, max clock (AMD), voltage and real bus clock use the **[PawnIO](https://pawnio.eu)** driver (`winget install namazso.PawnIO`). With it installed, click **Unlock** in the Processor tab and allow the UAC prompt.
+CPU temperature, max clock (AMD), voltage and real bus clock use the **[PawnIO](https://pawnio.eu)** driver. The installer offers to install it at the end (the portable version needs it installed separately: `winget install namazso.PawnIO`). With it installed, click **Unlock** in the Processor tab and allow the UAC prompt.
 
 If the app does not open, look for `silicio-crash.log` in your temp folder (type `%TEMP%` in the Explorer address bar) and attach it to a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
 
@@ -165,6 +167,8 @@ Silício reads hardware information through public interfaces only:
 | SPD EEPROM | `ee1004` / `spd5118` drivers | — |
 | Voltage, real bus clock, max clock, socket | MSR + raw SMBIOS through the root helper | MSR through PawnIO + firmware SMBIOS |
 | Graphics | `amdgpu`, `i915`, `xe` sysfs + NVML | WMI + NVML |
+| Drives and SMART | `/sys/block` + udisks2 (D-Bus), no root | `IOCTL_STORAGE_QUERY_PROPERTY`, no administrator |
+| Laptop battery | `/sys/class/power_supply` | `IOCTL_BATTERY_QUERY_*` |
 
 Codenames, JEDEC tables and memory vendor IDs come from public documentation and are written from scratch.
 
@@ -219,6 +223,8 @@ src-tauri/src/
   hw/spd.rs                   DDR4 SPD decoder (JEDEC 21-C)
   hw/gpu.rs                   graphics (sysfs, NVML, WMI)
   hw/pci.rs                   PCI devices and PCIe links
+  hw/storage.rs               drives, SMART health and partitions
+  hw/battery.rs               laptop battery
   hw/privileged.rs            MSR and raw SMBIOS (helper only)
   hw/wmi.rs                   WMI queries (Windows)
   bench.rs                    CPU benchmark and stress test
@@ -244,6 +250,7 @@ docs/                         CPU-Z analysis and screenshots
 - [x] Upgrade suggestions and a retro look with a custom title bar
 - [x] Camera formats and Bluetooth peripheral batteries on Windows
 - [x] Warning when the processor runs too hot
+- [x] Storage (drive health) and Battery tabs
 - [ ] Waybar module, Prometheus/MQTT export
 - [ ] Online benchmark comparison
 

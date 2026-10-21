@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Storage tab**: every drive with model, capacity, interface (NVMe with its PCIe link, SATA with the link speed, USB), temperature and the free space of each partition. The health comes from the drive's own SMART data: life left on SSDs, total written, power-on hours, unsafe shutdowns, read/write errors and bad sectors, summed up as Good, Caution or Bad. On Linux it is read through udisks2 without root (LUKS and LVM partitions are traced back to their drive); on Windows through the storage driver without administrator.
+- **Battery tab** (laptops only): health as the current capacity against the design capacity, charge cycles, charge level, power draw, estimated time left or to full, voltage and chemistry.
+- Storage and battery cards on the Overview and sections in the exported report.
+- **The Windows installer offers to install the PawnIO driver**, so CPU temperature and max clock work without downloading anything else. The official PawnIO installer is bundled unmodified and asks for UAC itself; the question is skipped when the driver is already installed, and automatic updates do not ask again after a "No".
+
+### Changed
+
+- With 11 tabs, the tab numbers hide in medium-sized windows so the bar fits on one line; Ctrl+0 opens the tenth tab.
+- The Windows installer and uninstaller (`setup.exe`) use the Silício icon instead of the generic NSIS one.
+
 ## [0.5.0]
 
 ### Added
