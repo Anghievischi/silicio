@@ -10,7 +10,9 @@
 ; usuário já recusou antes.
 !define SILICIO_PAWNIO_KEY "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO"
 !define SILICIO_KEY "Software\Silicio"
-; Dentro da macro, __FILEDIR__ seria a pasta do script que a expande.
+; Dentro da macro, __FILEDIR__ seria a pasta do script que a expande. O
+; caminho usa "\": o File do NSIS no Windows separa a pasta pela última
+; barra invertida e não acha o arquivo com "/".
 !define SILICIO_HOOKS_DIR "${__FILEDIR__}"
 
 !macro NSIS_HOOK_POSTINSTALL
@@ -44,7 +46,7 @@
   silicio_pawnio_install:
   DeleteRegValue HKCU "${SILICIO_KEY}" "PawnIODeclined"
   InitPluginsDir
-  File "/oname=$PLUGINSDIR\PawnIO_setup.exe" "${SILICIO_HOOKS_DIR}/PawnIO_setup.exe"
+  File "/oname=$PLUGINSDIR\PawnIO_setup.exe" "${SILICIO_HOOKS_DIR}\PawnIO_setup.exe"
   DetailPrint "PawnIO_setup.exe -install -silent"
   ; ShellExecute (e não CreateProcess) para o Windows mostrar o UAC: o
   ; instalador exige administrador e o Silício instala só para o usuário.
