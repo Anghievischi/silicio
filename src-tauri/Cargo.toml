@@ -1,6 +1,6 @@
 [package]
 name = "silicio"
-version = "0.5.0"
+version = "0.6.0"
 description = "Silício — informações de hardware com visual moderno"
 authors = ["Studio Alpha"]
 edition = "2024"
