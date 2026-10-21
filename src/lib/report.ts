@@ -2,7 +2,7 @@
 // independente de formato, que depois é escrita em HTML, Markdown ou JSON.
 
 import { invoke } from "@tauri-apps/api/core";
-import { bytes, cameraSummary, displayName, ghz, hex, or, size, smbiosDate, usbSpeed } from "$lib/format";
+import { bytes, cameraSummary, displayName, ghz, hex, memProfiles, memProfilesSummary, or, size, smbiosDate, usbSpeed } from "$lib/format";
 import { i18n, t } from "$lib/i18n/index.svelte";
 import { privileged } from "$lib/privileged.svelte";
 import type {
@@ -276,7 +276,7 @@ function sections(d: Data): Section[] {
           [m.common.voltage, x.voltage ? `${x.voltage.toFixed(2)} V` : "—"],
           [m.spd.dramChips, or(x.dram_manufacturer)],
           [m.spd.organization, `${x.ranks} rank(s) · x${x.device_width} · ${x.die_density_gbit} Gb`],
-          [m.spd.xmp, x.xmp ? m.spd.xmpProfiles(x.xmp.version, x.xmp.profiles) : m.spd.no],
+          [m.spd.xmp, memProfilesSummary(x, m)],
           [m.spd.manufactured, x.manufactured ? m.spd.week(x.manufactured[1], x.manufactured[0]) : "—"],
           [m.spd.integrity, x.crc_ok ? m.spd.crcOk : m.spd.crcBad],
         ],
@@ -287,6 +287,19 @@ function sections(d: Data): Section[] {
         head: [m.common.speed, m.spd.clock, "CL", "tRCD", "tRP", "tRAS", "tRC"],
         rows: x.table.map((b) => [`${b.speed_mts} MT/s`, `${b.clock_mhz} MHz`, ...[b.cl, b.trcd, b.trp, b.tras, b.trc].map(String)]),
       });
+      if (memProfiles(x).length) {
+        blocks.push({
+          kind: "table",
+          title: `${m.spd.xmpTable} · ${m.spd.module} ${mod.slot}`,
+          head: [m.spd.profile, m.common.speed, m.common.voltage, "CL", "tRCD", "tRP", "tRAS", "tRC", "tRFC1"],
+          rows: memProfiles(x).map(({ label, profile: p }) => [
+            p.name ? `${label} · ${p.name}` : label,
+            `${p.speed_mts} MT/s`,
+            `${p.voltage.toFixed(2)} V`,
+            ...[p.cl, p.trcd, p.trp, p.tras, p.trc, p.trfc1].map(String),
+          ]),
+        });
+      }
     }
     out.push({ id: "spd", title: m.tabs.spd, blocks });
   }

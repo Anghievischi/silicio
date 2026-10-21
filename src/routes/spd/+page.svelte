@@ -2,9 +2,11 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import Card from "$lib/components/Card.svelte";
-  import { or } from "$lib/format";
+  import { memProfiles, memProfilesSummary, or } from "$lib/format";
   import { t } from "$lib/i18n/index.svelte";
   import type { SpdModule } from "$lib/types";
+
+  const isWindows = navigator.userAgent.includes("Windows");
 
   let modules = $state<SpdModule[] | null>(null);
   let selected = $state(0);
@@ -35,9 +37,15 @@
       <p class="muted">{t().spd.none}</p>
     </div>
   </header>
-  <Card title={t().spd.howTo}>
-    <p>{t().spd.howToText}</p>
-  </Card>
+  {#if isWindows}
+    <Card title={t().tabs.spd}>
+      <p>{t().spd.howToTextWindows}</p>
+    </Card>
+  {:else}
+    <Card title={t().spd.howTo}>
+      <p>{t().spd.howToText}</p>
+    </Card>
+  {/if}
 {:else}
   <header>
     <div>
@@ -78,7 +86,7 @@
       </div>
       <div class="stat">
         <span class="muted">{t().spd.xmp}</span>
-        <strong>{d.xmp ? t().spd.xmpProfiles(d.xmp.version, d.xmp.profiles) : t().spd.no}</strong>
+        <strong>{memProfilesSummary(d, t())}</strong>
       </div>
     </div>
 
@@ -135,7 +143,7 @@
             <tbody>
               {#each d.table as bin, i}
                 <tr class:top={i === 0}>
-                  <td>DDR4-{bin.speed_mts}</td>
+                  <td>{current?.kind}-{bin.speed_mts}</td>
                   <td>{bin.clock_mhz} MHz</td>
                   <td>{bin.cl}</td>
                   <td>{bin.trcd}</td>
@@ -149,6 +157,46 @@
         </div>
         <p class="hint muted">{t().spd.casHint(d.cas_supported.join(", "))}</p>
       </Card>
+
+      {#if memProfiles(d).length}
+        <Card title={t().spd.xmpTable} span={3}>
+          <div class="table-wrap">
+            <table class="timings">
+              <thead>
+                <tr>
+                  <th>{t().spd.profile}</th>
+                  <th>{t().common.speed}</th>
+                  <th>{t().spd.clock}</th>
+                  <th>{t().common.voltage}</th>
+                  <th>CL</th>
+                  <th>tRCD</th>
+                  <th>tRP</th>
+                  <th>tRAS</th>
+                  <th>tRC</th>
+                  <th>tRFC1</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each memProfiles(d) as { label, profile: p }}
+                  <tr>
+                    <td>{label}{#if p.name}<span class="muted"> · {p.name}</span>{/if}</td>
+                    <td>{current?.kind}-{p.speed_mts}</td>
+                    <td>{p.clock_mhz} MHz</td>
+                    <td>{p.voltage.toFixed(2)} V</td>
+                    <td>{p.cl}</td>
+                    <td>{p.trcd}</td>
+                    <td>{p.trp}</td>
+                    <td>{p.tras}</td>
+                    <td>{p.trc}</td>
+                    <td>{p.trfc1}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+          <p class="hint muted">{t().spd.xmpHint}</p>
+        </Card>
+      {/if}
     </div>
   {/if}
 {/if}

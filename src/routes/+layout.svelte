@@ -8,7 +8,9 @@
   import ReportDialog from "$lib/components/ReportDialog.svelte";
   import ShareDialog from "$lib/components/ShareDialog.svelte";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
+  import HeatAlert from "$lib/components/HeatAlert.svelte";
   import { loadSystem, reportDialog } from "$lib/system.svelte";
+  import { autoUnlock } from "$lib/privileged.svelte";
   import { i18n } from "$lib/i18n/index.svelte";
   import type { CpuInfo } from "$lib/types";
 
@@ -33,6 +35,7 @@
   onMount(() => {
     document.documentElement.lang = i18n.locale;
     loadSystem();
+    autoUnlock();
     invoke<CpuInfo>("cpu_info")
       .then((cpu) => (document.documentElement.dataset.vendor = cpu.vendor))
       .catch(() => {});
@@ -45,6 +48,7 @@
   <Topbar />
   <main>
     <UpdateBanner />
+    <HeatAlert />
     {@render children()}
   </main>
   <StatusBar />

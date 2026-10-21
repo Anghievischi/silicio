@@ -5,6 +5,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **DDR5 modules** in the SPD tab: size, organization, manufacturer, part number, minimum timings and the JEDEC timings table (Linux, through the `spd5118` driver).
+- **XMP and AMD EXPO profiles**: speed, voltage and CL, tRCD, tRP, tRAS, tRC and tRFC1 of each profile (XMP 2.0 on DDR4, XMP 3.0 with the profile names and EXPO on DDR5), in the SPD tab and in the exported report.
+- **Windows: CPU temperature, max clock, core voltage and real bus clock** through the [PawnIO](https://pawnio.eu) driver (AMD Zen and Intel). Click **Unlock** in the Processor tab and allow the UAC prompt; a small read-only helper keeps sending the temperature while the app is open, and the app asks again on the next start. The max clock on AMD comes from CPPC, the same way Linux's `amd-pstate` computes it.
+- Socket, voltage and external clock from SMBIOS on Windows.
+- **Windows: battery level of Bluetooth headsets, mice and keyboards** (the same value shown in Windows Settings) and **camera formats** with every resolution and maximum frame rate, read through Media Foundation without turning the camera on.
+- Max clock on Linux when cpufreq does not report it, and AMD Zen 5 (family 1Ah) in the privileged readings.
+- **Heat warning**: if the processor stays at 95 °C or more for 30 seconds, a banner explains what to check (fans, dust, thermal paste). It can be snoozed for 30 minutes.
+
+### Changed
+
+- On Windows the SPD tab explains that module details are in the Memory tab instead of showing Linux instructions.
+
+### Fixed
+
+- Windows: after updating over an older version, shortcuts and the taskbar kept showing the old icon. The installer now refreshes the Windows icon cache.
+
 ## [0.4.0]
 
 ### Added

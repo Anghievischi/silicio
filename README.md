@@ -53,7 +53,7 @@ These links always point to the latest version. Older versions are on the [relea
 | Shareable specs card (PNG, dark or light) with benchmark score | Online validation | ✅ |
 | Upgrade suggestions: which graphics card fits, how much memory to add, the socket's fastest CPU | ❌ | ✅ |
 | Displays: model, panel, size, native resolution, refresh range, HDR, manufacture date (EDID) | ❌ | ✅ |
-| USB and Bluetooth devices with speed, power and function; peripheral batteries (Linux) | ❌ | ✅ |
+| USB and Bluetooth devices with speed, power and function; peripheral batteries (Bluetooth ones on Windows) | ❌ | ✅ |
 | Audio devices with current format; cameras with resolutions and frame rates | ❌ | ✅ |
 | Keyboard, mouse polling rate, speaker, dead pixel and camera tests | ❌ | ✅ |
 | Native Linux version | ❌ | ✅ |
@@ -99,6 +99,8 @@ scoop install silicio
 ```
 
 Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
+
+CPU temperature, max clock (AMD), voltage and real bus clock use the **[PawnIO](https://pawnio.eu)** driver (`winget install namazso.PawnIO`). With it installed, click **Unlock** in the Processor tab and allow the UAC prompt.
 
 If the app does not open, look for `silicio-crash.log` in your temp folder (type `%TEMP%` in the Explorer address bar) and attach it to a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
 
@@ -157,11 +159,11 @@ Silício reads hardware information through public interfaces only:
 |------|-------|---------|
 | CPU identification, caches, instructions | `CPUID` instruction | `CPUID` instruction |
 | Clocks, load, RAM usage | `sysinfo` (cpufreq) | `sysinfo` |
-| Temperatures, GPU sensors | hwmon (`k10temp`, `coretemp`, `amdgpu`) | NVML (NVIDIA) |
+| Temperatures, GPU sensors | hwmon (`k10temp`, `coretemp`, `amdgpu`) | CPU through PawnIO, GPU through NVML (NVIDIA) |
 | Motherboard, BIOS, memory modules | DMI in sysfs, SMBIOS decoded by udev | WMI |
 | Chipset, PCIe links | `/sys/bus/pci` + `pci.ids` | planned |
-| SPD EEPROM | `ee1004` / `spd5118` drivers | planned (PawnIO) |
-| Voltage, real bus clock, socket | MSR + raw SMBIOS through the root helper | planned (PawnIO) |
+| SPD EEPROM | `ee1004` / `spd5118` drivers | — |
+| Voltage, real bus clock, max clock, socket | MSR + raw SMBIOS through the root helper | MSR through PawnIO + firmware SMBIOS |
 | Graphics | `amdgpu`, `i915`, `xe` sysfs + NVML | WMI + NVML |
 
 Codenames, JEDEC tables and memory vendor IDs come from public documentation and are written from scratch.
@@ -230,18 +232,19 @@ docs/                         CPU-Z analysis and screenshots
 
 ## Roadmap
 
-- [x] Processor, motherboard, memory, SPD (DDR4), graphics and benchmark tabs
+- [x] Processor, motherboard, memory, SPD, graphics and benchmark tabs
 - [x] Overview dashboard, live core map and report export
 - [x] Root helper for MSR and SMBIOS on Linux
-- [ ] XMP / EXPO profile decoding and DDR5 SPD
-- [ ] Privileged readings on Windows with the PawnIO driver
+- [x] XMP / EXPO profile decoding and DDR5 SPD
+- [x] Temperature, clocks and voltage on Windows with the PawnIO driver
 - [x] English and Portuguese interface
 - [ ] More translations (contributions welcome)
 - [x] Peripherals tab (displays, USB/Bluetooth, audio, cameras) with interactive tests
 - [x] Shareable specs card
 - [x] Upgrade suggestions and a retro look with a custom title bar
-- [ ] Camera formats and peripheral batteries on Windows
-- [ ] Waybar module, Prometheus/MQTT export, temperature alerts
+- [x] Camera formats and Bluetooth peripheral batteries on Windows
+- [x] Warning when the processor runs too hot
+- [ ] Waybar module, Prometheus/MQTT export
 - [ ] Online benchmark comparison
 
 Ideas and votes are welcome in [issues](https://github.com/Anghievischi/silicio/issues).

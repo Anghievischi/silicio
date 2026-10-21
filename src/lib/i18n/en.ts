@@ -38,6 +38,11 @@ export const en: Messages = {
     failed: "Could not update automatically.",
     download: "Download manually",
   },
+  heat: {
+    title: (c) => `Processor running very hot: ${c} °C`,
+    text: "It has been like this for over 30 seconds, close to the point where it slows down to protect itself. Check that the fans are spinning and that the air vents are not clogged with dust. If it happens even under light use, the thermal paste may need replacing.",
+    dismiss: "Remind me in 30 min",
+  },
   app: {
     version: (v) => `version ${v}`,
     releaseNotes: "See what's new in this version",
@@ -325,7 +330,8 @@ export const en: Messages = {
     baseMultiplier: "Base multiplier",
     externalClock: "External clock (SMBIOS)",
     someFailed: (errors) => `Some readings failed: ${errors}`,
-    windowsUnavailable: "On Windows, socket, voltage and real bus clock are not available yet (they will use the PawnIO driver).",
+    unlockTextWindows:
+      "Temperature, max clock, core voltage and real bus clock need the PawnIO driver (pawnio.eu) and administrator access. Silício runs a small read-only helper and Windows asks for permission; after the first time, it is asked when the app opens.",
     unlockText:
       "Socket, core voltage and real bus clock need administrator access (MSR registers and the SMBIOS table). Silício runs a small read-only helper and the system asks for your password.",
     unlock: "Unlock",
@@ -410,6 +416,8 @@ export const en: Messages = {
     howTo: "How to enable",
     howToText:
       "Linux exposes the SPD through the ee1004 (DDR4) and spd5118 (DDR5) drivers. Some systems need the SMBus driver loaded (i2c-piix4 on AMD, i2c-i801 on Intel). Laptops sometimes block access in firmware.",
+    howToTextWindows:
+      "On Windows, Silício does not read the modules' SPD. Each module's manufacturer, model, size and speed are in the Memory tab.",
     module: "Module",
     notDecoded: (kind) => `Decoding ${kind} modules is not implemented yet.`,
     maxSpeed: "Max speed",
@@ -417,6 +425,7 @@ export const en: Messages = {
     timings: "Timings",
     xmp: "XMP / EXPO",
     xmpProfiles: (version, n) => `XMP ${version} · ${n} profile(s)`,
+    expoProfiles: (n) => `EXPO · ${n} profile(s)`,
     no: "No",
     dramChips: "DRAM chips",
     manufactured: "Manufactured",
@@ -434,6 +443,9 @@ export const en: Messages = {
     minTimings: "Minimum timings",
     tckMin: "tCK min.",
     jedecTable: "JEDEC timings table",
+    xmpTable: "XMP / EXPO profiles",
+    profile: "Profile",
+    xmpHint: "Values set by the manufacturer. They only apply with XMP or EXPO enabled in the BIOS.",
     clock: "Clock",
     casHint: (list) => `Supported CAS: ${list}. Cycles computed with the JEDEC rounding algorithm.`,
   },

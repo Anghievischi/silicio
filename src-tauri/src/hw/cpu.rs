@@ -172,7 +172,8 @@ impl LiveSampler {
             })
             .collect();
         let n = threads.len().max(1) as u64;
-        let (temperature_c, temperature_source) = match self.cpu_temperature() {
+        let sensor = self.cpu_temperature().or_else(platform::driver_celsius);
+        let (temperature_c, temperature_source) = match sensor {
             Some(t) => (Some(t), Some("sensor")),
             None => match platform::thermal_zone_celsius() {
                 Some(t) => (Some(t), Some("acpi")),
@@ -355,6 +356,10 @@ mod platform {
     }
 
     /// No Linux o hwmon já traz o sensor do processador.
+    pub fn driver_celsius() -> Option<f32> {
+        None
+    }
+
     pub fn thermal_zone_celsius() -> Option<f32> {
         None
     }
@@ -451,7 +456,8 @@ mod platform {
     }
 
     /// Só o CPUID 0x16 (Intel) informa o clock máximo sem driver; o "~MHz" do
-    /// Registro é o clock base, que mostraríamos errado como máximo.
+    /// Registro é o clock base, que mostraríamos errado como máximo. Depois que
+    /// o usuário autoriza o PawnIO, o máximo vem dos MSRs (AMD e Intel).
     pub fn clock_range() -> ClockRange {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         let max = raw_cpuid::CpuId::new()
@@ -460,6 +466,8 @@ mod platform {
             .filter(|mhz| *mhz > 0);
         #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
         let max = None;
+        #[cfg(target_arch = "x86_64")]
+        let max = max.or_else(crate::hw::privileged::win::max_mhz);
         ClockRange {
             max_mhz: max,
             ..ClockRange::default()
@@ -553,6 +561,14 @@ mod platform {
         out
     }
 
+    /// Sensor do processador lido pelo PawnIO, depois da autorização.
+    pub fn driver_celsius() -> Option<f32> {
+        #[cfg(target_arch = "x86_64")]
+        return crate::hw::privileged::win::temperature();
+        #[cfg(not(target_arch = "x86_64"))]
+        None
+    }
+
     /// Zona térmica ACPI pelos contadores de desempenho (não exige administrador).
     pub fn thermal_zone_celsius() -> Option<f32> {
         wmi::query(
@@ -580,6 +596,10 @@ mod platform {
 
     pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
         super::sequential_topology(threads, cores)
+    }
+
+    pub fn driver_celsius() -> Option<f32> {
+        None
     }
 
     pub fn thermal_zone_celsius() -> Option<f32> {
