@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- The Windows installer failed to build with the bundled PawnIO setup, so 0.6.0 shipped only for Linux. This version brings all of 0.6.0 to Windows.
+
 ## [0.6.0]
 
 ### Added
