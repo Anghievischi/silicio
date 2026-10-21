@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - New retro-futuristic look: square panels, condensed display type for titles and numbers, monospace text, block meters, a top bar with numbered tabs and a status bar. Fonts are bundled, so it works offline.
 - New icon.
+- The shareable card and the exported HTML report follow the new look. The card embeds the app's fonts, so the PNG looks the same everywhere.
+- New screenshots in the README.
 - On Windows the window has its own title bar, with minimize, maximize and close buttons in the app's style.
 
 ## [0.3.0]

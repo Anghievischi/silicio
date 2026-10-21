@@ -177,9 +177,11 @@
   }
 
   .big {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--accent);
   }
 
   .right {

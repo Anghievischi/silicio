@@ -519,32 +519,34 @@ function html(d: Data): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <style>
-:root{--bg:#f4f5f8;--surface:#fff;--border:#dfe2e9;--text:#161a22;--muted:#646b7a;--accent:#5b6cff;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#0d0f13;--surface:#151820;--border:#262b37;--text:#e7e9ee;--muted:#8a91a1;--accent:#8a98ff}}
+:root{--bg:#ede4d3;--surface:#f6f0e4;--border:#c9bba3;--text:#15130f;--muted:#5a4e3c;--accent:#b3560d;color-scheme:light dark;--display:"Big Shoulders Display","Bahnschrift SemiCondensed","Arial Narrow","Roboto Condensed",sans-serif;--mono:"JetBrains Mono","Cascadia Mono",Consolas,ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#15130f;--surface:#1c1915;--border:#3a342a;--text:#ede4d3;--muted:#a39883;--accent:#f28c28}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Segoe UI",system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.55 var(--mono)}
 main{max-width:1000px;margin:0 auto;padding:32px 16px 64px}
-header{padding:24px 28px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#2b3290);color:#fff}
-header h1{margin:0 0 6px;font-size:26px}
-header p{margin:0;opacity:.85;font-size:13px}
-nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
-nav a{padding:5px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:inherit;text-decoration:none;font-size:13px}
+header{padding:24px 28px 0;border:2px solid #3a342a;background:#15130f;color:#ede4d3}
+header h1{margin:0 0 8px;font:900 34px/1 var(--display);font-stretch:condensed;text-transform:uppercase;letter-spacing:.01em}
+header p{margin:0 0 20px;color:#a39883;font-size:12px}
+header::after{content:"";display:block;height:24px;margin:0 -28px;background:linear-gradient(#e5533d 0 25%,#f28c28 0 50%,#f2c14e 0 75%,#4fb3a9 0)}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 8px}
+nav a{padding:4px 10px;border:2px solid var(--border);background:var(--surface);color:inherit;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+nav a:hover{border-color:var(--accent)}
 section{margin-top:28px}
-h2{margin:0 0 12px;font-size:20px}
-h3{margin:0 0 10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h2{margin:0 0 12px;font:900 26px/1 var(--display);font-stretch:condensed;text-transform:uppercase;letter-spacing:.03em}
+h3{margin:0 0 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
 .blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.block{padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface);min-width:0}
+.block{padding:16px 18px;border:2px solid var(--border);background:var(--surface);min-width:0}
 .stack{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 dl{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 16px;margin:0}
 dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
-th{color:var(--muted);font-weight:600}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px dashed var(--border)}
+th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0}
-.chips span{padding:2px 9px;border:1px solid var(--border);border-radius:7px;font-size:12px}
+.chips span{padding:2px 8px;border:1px solid var(--border);font-size:12px}
 footer{margin-top:40px;color:var(--muted);font-size:12px;text-align:center}
-@media print{:root{--bg:#fff;--surface:#fff;--text:#000;--muted:#555;--border:#ccc}nav{display:none}header{background:none;color:#000;padding:0}section{break-inside:avoid-page}}
+@media print{:root{--bg:#fff;--surface:#fff;--text:#000;--muted:#555;--border:#ccc;--accent:#000}nav{display:none}header{background:none;color:#000;border:0;padding:0}header::after{display:none}section{break-inside:avoid-page}}
 @media (max-width:560px){.blocks{grid-template-columns:1fr}dl{grid-template-columns:1fr}dd{margin-bottom:6px}}
 </style>
 </head>

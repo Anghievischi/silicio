@@ -180,6 +180,7 @@ export const en: Messages = {
     fps: "Frames per second",
   },
   share: {
+    specSheet: "Spec sheet",
     button: "Share",
     title: "Shareable card",
     hint: "An image with your PC's specs, ready to post.",

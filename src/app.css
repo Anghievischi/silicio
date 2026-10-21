@@ -113,7 +113,7 @@ button {
 }
 
 /* Blocos comuns às abas. */
-header {
+main > header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -132,7 +132,7 @@ h1 {
   letter-spacing: 0.01em;
   text-transform: uppercase;
 }
-header p {
+main > header p {
   margin: 0;
   font-size: 12px;
 }

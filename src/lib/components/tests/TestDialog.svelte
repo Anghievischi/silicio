@@ -37,8 +37,8 @@
     width: min(980px, calc(100vw - 32px));
     max-height: calc(100vh - 48px);
     padding: 22px 24px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    border-radius: 0;
     background: var(--surface);
     color: var(--text);
     box-shadow: 0 24px 80px rgb(0 0 0 / 0.45);
@@ -58,6 +58,10 @@
 
   h2 {
     margin: 0;
-    font-size: 20px;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
   }
 </style>

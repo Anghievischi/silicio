@@ -182,6 +182,7 @@ export const ptBR = {
     fps: "Quadros por segundo",
   },
   share: {
+    specSheet: "Ficha técnica",
     button: "Compartilhar",
     title: "Cartão para compartilhar",
     hint: "Uma imagem com as especificações do seu PC, pronta para postar.",
