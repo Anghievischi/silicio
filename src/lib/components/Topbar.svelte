@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import type { Messages } from "$lib/i18n/pt-BR";
+  import { system } from "$lib/system.svelte";
 
   // As abas seguem as do CPU-Z, mais Upgrades; `key` aponta para o nome traduzido.
   export const tabs: { href: string; key: keyof Messages["tabs"] }[] = [
@@ -9,10 +10,18 @@
     { href: "/memoria", key: "memory" },
     { href: "/spd", key: "spd" },
     { href: "/graficos", key: "gpu" },
+    { href: "/armazenamento", key: "storage" },
+    { href: "/bateria", key: "battery" },
     { href: "/perifericos", key: "peripherals" },
     { href: "/benchmark", key: "bench" },
     { href: "/upgrades", key: "upgrades" },
   ];
+
+  /** Abas mostradas: a de bateria só em notebooks. */
+  export const visibleTabs = () => tabs.filter((tab) => tab.key !== "battery" || system.hasBattery);
+
+  /** Atalho da aba na posição `i`: Ctrl+1 … Ctrl+9 e Ctrl+0 para a décima. */
+  export const shortcut = (i: number) => (i < 9 ? String(i + 1) : i === 9 ? "0" : null);
 </script>
 
 <script lang="ts">
@@ -90,10 +99,11 @@
   </div>
 
   <nav aria-label={t().common.sections}>
-    {#each tabs as tab, i}
+    {#each visibleTabs() as tab, i}
       {@const label = t().tabs[tab.key]}
-      <a class="tab" class:active={page.url.pathname === tab.href} href={tab.href} title="{label} (Ctrl+{i + 1})">
-        <span class="key num">{i + 1}</span>
+      {@const key = shortcut(i)}
+      <a class="tab" class:active={page.url.pathname === tab.href} href={tab.href} title={key ? `${label} (Ctrl+${key})` : label}>
+        {#if key}<span class="key num">{key}</span>{/if}
         <span class="label">{label}</span>
       </a>
     {/each}
@@ -253,6 +263,18 @@
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
+  }
+
+  /* Com 11 abas, os números não cabem junto dos nomes em janelas médias;
+     o atalho continua no título da aba. */
+  @media (min-width: 861px) and (max-width: 1360px) {
+    .tab .key {
+      display: none;
+    }
+
+    .tab {
+      padding: 0 8px;
+    }
   }
 
   @media (max-width: 860px) {

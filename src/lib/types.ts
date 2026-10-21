@@ -401,3 +401,57 @@ export interface Peripherals {
   audio: AudioDevice[];
   cameras: Camera[];
 }
+
+export interface DiskHealth {
+  status: "good" | "warning" | "bad";
+  life_left: number | null;
+  written_bytes: number | null;
+  read_bytes: number | null;
+  power_on_hours: number | null;
+  power_cycles: number | null;
+  unsafe_shutdowns: number | null;
+  media_errors: number | null;
+  bad_sectors: number | null;
+  available_spare: number | null;
+  critical_warning: number | null;
+  failing: boolean;
+}
+
+export interface Volume {
+  mount_point: string;
+  label: string | null;
+  file_system: string | null;
+  total_bytes: number;
+  available_bytes: number;
+}
+
+export interface Disk {
+  id: string;
+  model: string | null;
+  vendor: string | null;
+  firmware: string | null;
+  size_bytes: number;
+  bus: "nvme" | "sata" | "usb" | "mmc" | "scsi" | "virtual" | null;
+  media: "ssd" | "hdd" | null;
+  removable: boolean;
+  link: PcieLink | null;
+  sata_speed: string | null;
+  temperature_c: number | null;
+  health: DiskHealth | null;
+  volumes: Volume[];
+}
+
+export interface SystemBattery {
+  model: string | null;
+  manufacturer: string | null;
+  technology: string | null;
+  design_wh: number | null;
+  full_wh: number | null;
+  now_wh: number | null;
+  percent: number | null;
+  cycles: number | null;
+  status: "charging" | "discharging" | "full" | "not_charging" | "unknown";
+  power_w: number | null;
+  voltage_v: number | null;
+  ac_online: boolean | null;
+}

@@ -71,6 +71,8 @@
           "PortugueseBR",
           "English"
         ],
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
         "installerHooks": "../packaging/windows/installer-hooks.nsh"
       }
     }

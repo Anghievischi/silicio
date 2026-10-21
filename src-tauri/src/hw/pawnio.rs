@@ -44,7 +44,7 @@ impl std::fmt::Display for OpenError {
         match self {
             Self::NotInstalled => write!(
                 f,
-                "o driver PawnIO não está instalado. Instale-o em https://pawnio.eu (ou `winget install namazso.PawnIO`) e tente de novo."
+                "o driver PawnIO não está instalado. Reinstale o Silício e aceite a instalação do driver, ou instale-o em https://pawnio.eu (`winget install namazso.PawnIO`), e tente de novo."
             ),
             Self::AccessDenied => write!(f, "o PawnIO exige administrador"),
             Self::Unsupported(cpu) => {

@@ -2,13 +2,30 @@
 // independente de formato, que depois é escrita em HTML, Markdown ou JSON.
 
 import { invoke } from "@tauri-apps/api/core";
-import { bytes, cameraSummary, displayName, ghz, hex, memProfiles, memProfilesSummary, or, size, smbiosDate, usbSpeed } from "$lib/format";
+import {
+  batteryHealth,
+  bytes,
+  cameraSummary,
+  diskInterface,
+  diskName,
+  diskSize,
+  displayName,
+  ghz,
+  hex,
+  memProfiles,
+  memProfilesSummary,
+  or,
+  size,
+  smbiosDate,
+  usbSpeed,
+} from "$lib/format";
 import { i18n, t } from "$lib/i18n/index.svelte";
 import { privileged } from "$lib/privileged.svelte";
 import type {
   BoardInfo,
   CpuInfo,
   CpuLive,
+  Disk,
   Gpu,
   GpuLive,
   MemoryInfo,
@@ -16,6 +33,7 @@ import type {
   PcieLink,
   Peripherals,
   SpdModule,
+  SystemBattery,
   SystemInfo,
   Upgrades,
 } from "$lib/types";
@@ -44,6 +62,8 @@ interface Data {
   spd: SpdModule[];
   gpus: Gpu[];
   gpuLive: GpuLive[];
+  storage: Disk[];
+  battery: SystemBattery[];
   peripherals: Peripherals | null;
   upgrades: Upgrades | null;
   privileged: typeof privileged.data;
@@ -54,7 +74,7 @@ interface Data {
 /** Lê todos os componentes; o que falhar fica de fora em vez de interromper o relatório. */
 export async function collect(): Promise<Data> {
   const get = <T>(cmd: string) => invoke<T>(cmd).catch(() => null);
-  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, peripherals, upgrades] = await Promise.all([
+  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, storage, battery, peripherals, upgrades] = await Promise.all([
     get<SystemInfo>("system_info"),
     get<CpuInfo>("cpu_info"),
     get<CpuLive>("cpu_live"),
@@ -64,6 +84,8 @@ export async function collect(): Promise<Data> {
     get<SpdModule[]>("spd_info"),
     get<Gpu[]>("gpu_info"),
     get<GpuLive[]>("gpu_live"),
+    get<Disk[]>("storage_info"),
+    get<SystemBattery[]>("battery_info"),
     get<Peripherals>("peripherals_info"),
     get<Upgrades>("upgrade_info"),
   ]);
@@ -83,6 +105,8 @@ export async function collect(): Promise<Data> {
     spd: spd ?? [],
     gpus: gpus ?? [],
     gpuLive: gpuLive ?? [],
+    storage: storage ?? [],
+    battery: battery ?? [],
     peripherals,
     upgrades,
     privileged: privileged.data,
@@ -112,6 +136,11 @@ function sections(d: Data): Section[] {
   if (board) summary.push([m.tabs.board, [board.board.vendor, board.board.name].filter(Boolean).join(" ") || "—"]);
   if (memory) summary.push([m.tabs.memory, `${bytes(memory.total_bytes)} ${memory.kind ?? ""} ${mts(memory.speed_mts)} · ${m.memory.channels(memory.channels)}`]);
   for (const gpu of d.gpus) summary.push([m.gpu.card, `${gpu.name ?? gpu.vendor ?? "—"}${gpu.vram_bytes ? ` · ${bytes(gpu.vram_bytes)}` : ""}`]);
+  for (const disk of d.storage.filter((x) => !x.removable)) summary.push([m.tabs.storage, `${diskName(disk)} · ${diskSize(disk.size_bytes)} · ${diskInterface(disk)}`]);
+  for (const bat of d.battery) {
+    const health = batteryHealth(bat);
+    if (health != null) summary.push([m.tabs.battery, `${m.battery.health}: ${health}% (${m.battery.rating(health)})`]);
+  }
   out.push({
     id: "summary",
     title: m.report.summary,
@@ -323,6 +352,71 @@ function sections(d: Data): Section[] {
           [m.common.pcieMax, link(g.link, false)],
         ] as [string, string][],
       })),
+    });
+  }
+
+  if (d.storage.length) {
+    const st = m.storage;
+    const num = (v: number | null) => (v != null ? v.toLocaleString(i18n.locale) : "—");
+    out.push({
+      id: "storage",
+      title: m.tabs.storage,
+      blocks: d.storage.flatMap((x): Block[] => {
+        const h = x.health;
+        const rows: [string, string][] = [
+          [st.capacity, diskSize(x.size_bytes)],
+          [st.type, x.media ? st[x.media] : "—"],
+          [st.interface, diskInterface(x)],
+          [st.temperature, x.temperature_c != null ? `${Math.round(x.temperature_c)} °C` : "—"],
+          [st.health, h ? st.status[h.status] : "—"],
+        ];
+        if (h) {
+          rows.push(
+            [st.lifeLeft, h.life_left != null ? `${h.life_left}%` : "—"],
+            [st.written, diskSize(h.written_bytes)],
+            [st.powerOn, h.power_on_hours != null ? st.hours(num(h.power_on_hours), num(Math.round(h.power_on_hours / 24))) : "—"],
+          );
+          if (h.unsafe_shutdowns != null) rows.push([st.unsafeShutdowns, num(h.unsafe_shutdowns)]);
+          if (h.media_errors != null) rows.push([st.mediaErrors, num(h.media_errors)]);
+          if (h.bad_sectors != null) rows.push([st.badSectors, num(h.bad_sectors)]);
+        }
+        rows.push([st.firmware, or(x.firmware)]);
+        const blocks: Block[] = [{ kind: "kv", title: diskName(x), rows }];
+        if (x.volumes.length) {
+          blocks.push({
+            kind: "table",
+            title: `${diskName(x)} · ${st.volumes}`,
+            head: [st.volumes, m.board.type, st.capacity, m.report.value],
+            rows: x.volumes.map((v) => [v.mount_point, or(v.file_system), diskSize(v.total_bytes), st.free(diskSize(v.available_bytes), diskSize(v.total_bytes))]),
+          });
+        }
+        return blocks;
+      }),
+    });
+  }
+
+  for (const bat of d.battery) {
+    const b = m.battery;
+    const health = batteryHealth(bat);
+    const wh = (v: number | null) => (v != null ? `${v.toFixed(1)} Wh` : "—");
+    out.push({
+      id: "battery",
+      title: m.tabs.battery,
+      blocks: [
+        {
+          kind: "kv",
+          rows: [
+            [b.health, health != null ? `${health}% (${b.rating(health)})` : "—"],
+            [b.design, wh(bat.design_wh)],
+            [b.full, wh(bat.full_wh)],
+            [b.cycles, or(bat.cycles)],
+            [b.charge, bat.percent != null ? `${Math.round(bat.percent)}% · ${b.status[bat.status]}` : "—"],
+            [b.technology, or(bat.technology)],
+            [m.common.manufacturer, or(bat.manufacturer)],
+            [b.model, or(bat.model)],
+          ],
+        },
+      ],
     });
   }
 

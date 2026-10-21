@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import StatusBar from "$lib/components/StatusBar.svelte";
-  import Topbar, { tabs } from "$lib/components/Topbar.svelte";
+  import Topbar, { shortcut, visibleTabs } from "$lib/components/Topbar.svelte";
   import ReportDialog from "$lib/components/ReportDialog.svelte";
   import ShareDialog from "$lib/components/ShareDialog.svelte";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
@@ -16,7 +16,7 @@
 
   let { children } = $props();
 
-  // Ctrl+1, Ctrl+2… alternam entre as abas; Ctrl+E exporta o relatório.
+  // Ctrl+1, Ctrl+2… (e Ctrl+0) alternam entre as abas; Ctrl+E exporta o relatório.
   function onKeydown(e: KeyboardEvent) {
     if (!e.ctrlKey || e.altKey || e.shiftKey) return;
     if (e.key.toLowerCase() === "e") {
@@ -24,7 +24,7 @@
       reportDialog.open = true;
       return;
     }
-    const href = tabs[Number(e.key) - 1]?.href;
+    const href = visibleTabs().find((_, i) => shortcut(i) === e.key)?.href;
     if (href) {
       e.preventDefault();
       goto(href);

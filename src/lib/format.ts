@@ -1,5 +1,5 @@
 import type { Messages } from "./i18n/pt-BR";
-import type { MemProfile, SpdDecoded } from "./types";
+import type { Disk, MemProfile, SpdDecoded, SystemBattery } from "./types";
 
 export const hex = (n: number) => "0x" + n.toString(16).toUpperCase();
 
@@ -73,4 +73,39 @@ export function memProfiles(d: SpdDecoded): { label: string; profile: MemProfile
     ...(d.xmp?.profiles ?? []).map((p) => ({ label: `XMP ${p.number}`, profile: p })),
     ...(d.expo ?? []).map((p) => ({ label: `EXPO ${p.number}`, profile: p })),
   ];
+}
+
+/** Tamanho de disco em unidades decimais, como vem na caixa ("512 GB", "2 TB"). */
+export function diskSize(n: number | null | undefined): string {
+  if (!n) return "—";
+  if (n >= 1e12) return `${+(n / 1e12).toFixed(1)} TB`;
+  if (n >= 1e9) return `${Math.round(n / 1e9)} GB`;
+  return `${Math.round(n / 1e6)} MB`;
+}
+
+export const diskName = (d: Disk) => [d.vendor, d.model].filter(Boolean).join(" ") || d.id;
+
+const BUS: Record<string, string> = { nvme: "NVMe", sata: "SATA", usb: "USB", mmc: "SD/eMMC", scsi: "SCSI", virtual: "Virtual" };
+
+/** "NVMe · PCIe 4.0 x4", "SATA · 6.0 Gbps". */
+export function diskInterface(d: Disk): string {
+  const bus = d.bus ? BUS[d.bus] : null;
+  const link = d.link?.max_gen ? `PCIe ${d.link.max_gen}.0${d.link.max_width ? ` x${d.link.max_width}` : ""}` : d.sata_speed;
+  return [bus, link].filter(Boolean).join(" · ") || "—";
+}
+
+/** Capacidade que a bateria ainda segura, em % da original. */
+export function batteryHealth(b: SystemBattery): number | null {
+  if (!b.full_wh || !b.design_wh) return null;
+  return Math.min(100, Math.round((b.full_wh / b.design_wh) * 100));
+}
+
+/** Tempo até esvaziar ou até encher, pela potência do momento. */
+export function batteryTime(b: SystemBattery): { hours: number; minutes: number } | null {
+  if (!b.power_w || b.now_wh == null) return null;
+  const wh = b.status === "discharging" ? b.now_wh : b.status === "charging" && b.full_wh ? b.full_wh - b.now_wh : null;
+  if (wh == null || wh <= 0) return null;
+  const total = Math.round((wh / b.power_w) * 60);
+  if (total > 48 * 60) return null;
+  return { hours: Math.floor(total / 60), minutes: total % 60 };
 }

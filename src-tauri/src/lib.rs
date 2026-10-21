@@ -2,6 +2,7 @@ mod bench;
 mod hw;
 
 use bench::{BenchResult, Stress, StressStatus};
+use hw::battery::{self, Battery};
 use hw::board::{self, BoardInfo};
 use hw::cpu::{self, CpuInfo, CpuLive, LiveSampler};
 use hw::gpu::{Gpu, GpuLive, GpuSampler};
@@ -9,6 +10,7 @@ use hw::memory::{self, MemoryInfo, MemoryLive};
 use hw::peripherals::{self, Peripherals};
 use hw::privileged::PrivilegedInfo;
 use hw::spd::{self, SpdModule};
+use hw::storage::{self, Disk};
 use hw::upgrade::{self, Upgrades};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -90,6 +92,16 @@ async fn upgrade_info(app: AppHandle) -> Result<Upgrades, String> {
 #[tauri::command]
 async fn peripherals_info() -> Result<Peripherals, String> {
     off_main(peripherals::read).await
+}
+
+#[tauri::command]
+async fn storage_info() -> Result<Vec<Disk>, String> {
+    off_main(storage::read).await
+}
+
+#[tauri::command]
+async fn battery_info() -> Result<Vec<Battery>, String> {
+    off_main(battery::read).await
 }
 
 #[tauri::command]
@@ -269,12 +281,12 @@ async fn privileged_info() -> Result<PrivilegedInfo, String> {
     .await?
 }
 
-/// `--smoke-test`: abre a janela, passa por todas as abas (Ctrl+1…9) e fecha.
+/// `--smoke-test`: abre a janela, passa pelas abas (Ctrl+1…9 e Ctrl+0) e fecha.
 /// Usado pelo teste `tests/smoke.rs` para garantir que o app abre de verdade.
 fn smoke_test(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(4));
-        for tab in 1..=9 {
+        for tab in [1, 2, 3, 4, 5, 6, 7, 8, 9, 0] {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.eval(format!(
                     "window.dispatchEvent(new KeyboardEvent('keydown', {{ key: '{tab}', ctrlKey: true }}))"
@@ -321,6 +333,8 @@ pub fn run() {
             "board": board::read(),
             "memory": memory::read(),
             "spd": spd::read(),
+            "storage": storage::read(),
+            "battery": battery::read(),
             "gpu_live": gpus.live(),
             "peripherals": peripherals::read(),
             "upgrades": upgrade::read(&gpu_list),
@@ -372,6 +386,8 @@ pub fn run() {
             memory_info,
             memory_live,
             spd_info,
+            storage_info,
+            battery_info,
             peripherals_info,
             upgrade_info,
             privileged_info,

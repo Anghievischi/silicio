@@ -5,10 +5,10 @@
   import CoreMap from "$lib/components/CoreMap.svelte";
   import Gauge from "$lib/components/Gauge.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
-  import { bytes, ghz, or, smbiosDate } from "$lib/format";
+  import { batteryHealth, bytes, diskInterface, diskName, diskSize, ghz, or, smbiosDate } from "$lib/format";
   import { i18n, t } from "$lib/i18n/index.svelte";
   import { reportDialog, shareDialog } from "$lib/system.svelte";
-  import type { BoardInfo, CpuInfo, CpuLive, Gpu, GpuLive, MemoryInfo, MemoryLive } from "$lib/types";
+  import type { BoardInfo, CpuInfo, CpuLive, Disk, Gpu, GpuLive, MemoryInfo, MemoryLive, SystemBattery } from "$lib/types";
   import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
 
   const HISTORY = 60;
@@ -17,6 +17,8 @@
   let board = $state<BoardInfo | null>(null);
   let memory = $state<MemoryInfo | null>(null);
   let gpus = $state<Gpu[]>([]);
+  let disks = $state<Disk[] | null>(null);
+  let battery = $state<SystemBattery | null>(null);
   let live = $state<CpuLive | null>(null);
   let memLive = $state<MemoryLive | null>(null);
   let gpuLive = $state<GpuLive[]>([]);
@@ -40,6 +42,8 @@
     invoke<BoardInfo>("board_info").then((d) => (board = d)).catch(() => {});
     invoke<MemoryInfo>("memory_info").then((d) => (memory = d)).catch(() => {});
     invoke<Gpu[]>("gpu_info").then((d) => (gpus = d)).catch(() => {});
+    invoke<Disk[]>("storage_info").then((d) => (disks = d)).catch(() => (disks = []));
+    invoke<SystemBattery[]>("battery_info").then((d) => (battery = d[0] ?? null)).catch(() => {});
     loadUpgrades();
 
     const tick = async () => {
@@ -208,6 +212,44 @@
         <span class="more">{t().overview.details} →</span>
       </Card>
     </a>
+
+    <a class="summary" href="/armazenamento">
+      <Card title={t().tabs.storage}>
+        {#if disks}
+          {#each disks.filter((d) => !d.removable) as disk}
+            {@const free = disk.volumes.reduce((sum, v) => sum + v.available_bytes, 0)}
+            <div class="gpu">
+              <strong>{diskName(disk)}</strong>
+              <span class="muted">
+                {diskSize(disk.size_bytes)} · {diskInterface(disk)}
+                {#if disk.health?.life_left != null} · {t().storage.lifeLeft.toLowerCase()} {disk.health.life_left}%{/if}
+                {#if disk.volumes.length} · {t().overview.storageFree(diskSize(free))}{/if}
+              </span>
+            </div>
+          {:else}
+            <span class="muted">{t().storage.none}</span>
+          {/each}
+        {:else}
+          <div class="skeleton line-sk"></div>
+        {/if}
+        <span class="more">{t().overview.details} →</span>
+      </Card>
+    </a>
+
+    {#if battery}
+      {@const health = batteryHealth(battery)}
+      <a class="summary" href="/bateria">
+        <Card title={t().tabs.battery}>
+          <strong class="num">{battery.percent != null ? `${Math.round(battery.percent)}%` : "—"}</strong>
+          <span>{t().battery.status[battery.status]}</span>
+          <dl class="mini">
+            <dt>{t().battery.health}</dt><dd class="num">{health != null ? `${health}% · ${t().battery.rating(health)}` : "—"}</dd>
+            <dt>{t().battery.cycles}</dt><dd class="num">{or(battery.cycles)}</dd>
+          </dl>
+          <span class="more">{t().overview.details} →</span>
+        </Card>
+      </a>
+    {/if}
 
     {#if upgrades.data}
       <a class="upgrade" href="/upgrades">
