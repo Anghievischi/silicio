@@ -335,7 +335,7 @@ export const ptBR = {
     externalClock: "Clock externo (SMBIOS)",
     someFailed: (errors: string) => `Algumas leituras falharam: ${errors}`,
     unlockTextWindows:
-      "Temperatura, clock máximo, tensão do núcleo e bus real exigem o driver PawnIO (pawnio.eu) e acesso de administrador. O Silício roda um pequeno helper só de leitura e o Windows pede a autorização; depois da primeira vez, ela é pedida ao abrir o app.",
+      "Temperatura, clock máximo, tensão do núcleo e bus real exigem o driver PawnIO (oferecido pelo instalador do Silício, ou em pawnio.eu) e acesso de administrador. O Silício roda um pequeno helper só de leitura e o Windows pede a autorização; depois da primeira vez, ela é pedida ao abrir o app.",
     unlockText:
       "Soquete, tensão do núcleo e o bus real exigem acesso de administrador (registradores MSR e tabela SMBIOS). O Silício roda um pequeno helper só de leitura, e o sistema pede sua senha.",
     unlock: "Desbloquear",

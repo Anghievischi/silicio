@@ -100,7 +100,7 @@ scoop install silicio
 
 Windows 10 and 11 already include WebView2, which the app uses. If it is missing, the installer downloads it.
 
-CPU temperature, max clock (AMD), voltage and real bus clock use the **[PawnIO](https://pawnio.eu)** driver (`winget install namazso.PawnIO`). With it installed, click **Unlock** in the Processor tab and allow the UAC prompt.
+CPU temperature, max clock (AMD), voltage and real bus clock use the **[PawnIO](https://pawnio.eu)** driver. The installer offers to install it at the end (the portable version needs it installed separately: `winget install namazso.PawnIO`). With it installed, click **Unlock** in the Processor tab and allow the UAC prompt.
 
 If the app does not open, look for `silicio-crash.log` in your temp folder (type `%TEMP%` in the Explorer address bar) and attach it to a [bug report](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
 

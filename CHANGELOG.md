@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **The Windows installer offers to install the PawnIO driver**, so CPU temperature and max clock work without downloading anything else. The official PawnIO installer is bundled unmodified and asks for UAC itself; the question is skipped when the driver is already installed, and automatic updates do not ask again after a "No".
+
 ## [0.5.0]
 
 ### Added
