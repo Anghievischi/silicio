@@ -1,10 +1,12 @@
 mod bench;
 mod hw;
+mod session;
 
 use bench::{BenchResult, Stress, StressStatus};
 use hw::battery::{self, Battery};
 use hw::board::{self, BoardInfo};
 use hw::cpu::{self, CpuInfo, CpuLive, LiveSampler};
+use hw::diagnosis::{self, Diagnosis};
 use hw::gpu::{Gpu, GpuLive, GpuSampler};
 use hw::memory::{self, MemoryInfo, MemoryLive};
 use hw::peripherals::{self, Peripherals};
@@ -13,6 +15,7 @@ use hw::spd::{self, SpdModule};
 use hw::storage::{self, Disk};
 use hw::upgrade::{self, Upgrades};
 use serde::Serialize;
+use session::{Report, Session, SessionStatus};
 use std::path::{Path, PathBuf};
 #[cfg(not(windows))]
 use std::process::Command;
@@ -89,6 +92,16 @@ async fn upgrade_info(app: AppHandle) -> Result<Upgrades, String> {
     .await
 }
 
+/// Diagnóstico: o que está deixando o computador lento ou perto de dar problema.
+#[tauri::command]
+async fn diagnosis_info(app: AppHandle) -> Result<Diagnosis, String> {
+    off_main(move || {
+        let gpus = locked(&app, |s: &mut GpuSampler| s.info());
+        diagnosis::read(&gpus)
+    })
+    .await
+}
+
 #[tauri::command]
 async fn peripherals_info() -> Result<Peripherals, String> {
     off_main(peripherals::read).await
@@ -136,6 +149,37 @@ fn stress_status(stress: tauri::State<'_, Mutex<Stress>>) -> StressStatus {
     stress.lock().unwrap_or_else(|e| e.into_inner()).status()
 }
 
+/// Começa a gravar a sessão de jogo; a NVML é a mesma das outras abas.
+#[tauri::command]
+async fn session_start(app: AppHandle) -> Result<SessionStatus, String> {
+    off_main(move || {
+        let gpus = locked(&app, |s: &mut GpuSampler| s.info());
+        let handle = app.clone();
+        let live = move || locked(&handle, |s: &mut GpuSampler| s.live());
+        locked(&app, |s: &mut Session| {
+            s.start(&gpus, live);
+            s.status()
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+fn session_stop(session: tauri::State<'_, Mutex<Session>>) -> Option<Report> {
+    session.lock().unwrap_or_else(|e| e.into_inner()).stop()
+}
+
+#[tauri::command]
+fn session_status(session: tauri::State<'_, Mutex<Session>>) -> SessionStatus {
+    session.lock().unwrap_or_else(|e| e.into_inner()).status()
+}
+
+/// Laudo da última sessão, se houver.
+#[tauri::command]
+fn session_report(session: tauri::State<'_, Mutex<Session>>) -> Option<Report> {
+    session.lock().unwrap_or_else(|e| e.into_inner()).report()
+}
+
 #[derive(Serialize)]
 struct SystemInfo {
     app_version: &'static str,
@@ -157,7 +201,7 @@ fn system_info() -> SystemInfo {
 
 /// Prefixo obrigatório dos relatórios: o app só abre arquivos que ele mesmo salvou.
 const REPORT_PREFIX: &str = "Silicio-";
-const REPORT_EXTENSIONS: [&str; 4] = ["html", "md", "json", "png"];
+const REPORT_EXTENSIONS: [&str; 5] = ["html", "md", "json", "png", "csv"];
 
 fn report_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let paths = app.path();
@@ -334,6 +378,7 @@ pub fn run() {
             "gpu_live": gpus.live(),
             "peripherals": peripherals::read(),
             "upgrades": upgrade::read(&gpu_list),
+            "diagnosis": diagnosis::read(&gpu_list),
             "gpu": gpu_list,
         });
         println!(
@@ -359,6 +404,26 @@ pub fn run() {
         return;
     }
 
+    // `silicio --session 300` grava uma sessão de jogo de 300 s (padrão 60) e imprime o laudo.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(i) = args.iter().position(|a| a == "--session") {
+        let seconds = args
+            .get(i + 1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(60u64);
+        let gpus = std::sync::Arc::new(GpuSampler::new());
+        let mut session = Session::default();
+        let live = gpus.clone();
+        session.start(&gpus.info(), move || live.live());
+        eprintln!("Gravando {seconds} s; abra o jogo agora.");
+        std::thread::sleep(Duration::from_secs(seconds));
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&session.stop()).expect("laudo é serializável")
+        );
+        return;
+    }
+
     let smoke = has_flag("--smoke-test");
 
     tauri::Builder::default()
@@ -369,6 +434,7 @@ pub fn run() {
         .manage(Mutex::new(System::new()))
         .manage(Mutex::new(GpuSampler::new()))
         .manage(Mutex::new(Stress::default()))
+        .manage(Mutex::new(Session::default()))
         .setup(move |app| {
             if smoke {
                 smoke_test(app.handle().clone());
@@ -386,6 +452,7 @@ pub fn run() {
             battery_info,
             peripherals_info,
             upgrade_info,
+            diagnosis_info,
             privileged_info,
             gpu_info,
             gpu_live,
@@ -393,6 +460,10 @@ pub fn run() {
             stress_start,
             stress_stop,
             stress_status,
+            session_start,
+            session_stop,
+            session_status,
+            session_report,
             system_info,
             save_report,
             save_image,
@@ -411,6 +482,7 @@ mod tests {
         assert!(is_report_name("Silicio-relatorio-2026-10-19.html"));
         assert!(is_report_name("Silicio-report.md"));
         assert!(is_report_name("Silicio-card-2026-10-19.png"));
+        assert!(is_report_name("Silicio-sessao-2026-10-22-2130.csv"));
         assert!(!is_report_name("Silicio-x.exe"));
         assert!(!is_report_name("../Silicio-x.html"));
         assert!(!is_report_name("Silicio-a/b.html"));

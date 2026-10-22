@@ -30,6 +30,7 @@ Useful commands:
 | `cargo test` (in `src-tauri`) | Runs the Rust unit tests |
 | `cargo clippy --all-targets` (in `src-tauri`) | Lints the Rust code |
 | `cargo run -- --json` (in `src-tauri`) | Prints the hardware report |
+| `cargo run -- --session 300` (in `src-tauri`) | Records a 300 s gaming session and prints the report |
 | `SILICIO_SMOKE=1 cargo test --test smoke` (in `src-tauri`, after `pnpm build`) | Opens the real window, visits every tab and checks the app exits cleanly (always runs on Windows CI) |
 
 ## Guidelines

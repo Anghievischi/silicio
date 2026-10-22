@@ -109,3 +109,11 @@ export function batteryTime(b: SystemBattery): { hours: number; minutes: number 
   if (total > 48 * 60) return null;
   return { hours: Math.floor(total / 60), minutes: total % 60 };
 }
+
+/** "12:05" ou "1:02:05". */
+export function clock(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = String(Math.floor(seconds % 60)).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}

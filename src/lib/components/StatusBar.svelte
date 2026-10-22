@@ -2,17 +2,30 @@
   import { page } from "$app/state";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { t } from "$lib/i18n/index.svelte";
+  import { clock } from "$lib/format";
+  import { session } from "$lib/gaming.svelte";
   import { system } from "$lib/system.svelte";
   import { tabs } from "./Topbar.svelte";
 
   const RELEASES = "https://github.com/Anghievischi/silicio/releases";
 
   let current = $derived(tabs.find((tab) => tab.href === page.url.pathname));
+
+  // A sessão de jogo grava no backend; aqui só conta o tempo para avisar em qualquer aba.
+  let now = $state(Date.now());
+  $effect(() => {
+    if (!session.running) return;
+    const timer = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(timer);
+  });
 </script>
 
 <footer>
   <span class="mode">{current ? t().tabs[current.key] : "Silício"}</span>
   <span class="live"><span class="dot"></span>{t().window.live}</span>
+  {#if session.running}
+    <a class="cell rec" href="/jogos">● {t().gaming.recording} {clock(Math.max(0, (now - session.startedAt) / 1000))}</a>
+  {/if}
   {#if system.info?.os}<span class="cell muted">{system.info.os}</span>{/if}
   <span class="fill"></span>
   <span class="cell muted keys">{t().window.keys}</span>
@@ -73,6 +86,13 @@
     50% {
       opacity: 0.25;
     }
+  }
+
+  .rec {
+    background: var(--hot);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
   }
 
   .fill {

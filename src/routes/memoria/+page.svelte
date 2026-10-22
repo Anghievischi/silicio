@@ -4,6 +4,7 @@
   import Card from "$lib/components/Card.svelte";
   import Sparkline from "$lib/components/Sparkline.svelte";
   import MemoryAdvice from "$lib/components/upgrades/MemoryAdvice.svelte";
+  import { diagnosis, findingText, loadDiagnosis } from "$lib/diagnosis.svelte";
   import { bytes, or } from "$lib/format";
   import { t } from "$lib/i18n/index.svelte";
   import type { MemoryInfo, MemoryLive } from "$lib/types";
@@ -20,33 +21,15 @@
   let installed = $derived(modules.reduce((sum, s) => sum + s.size_bytes, 0));
   let usedPct = $derived(live ? (live.used_bytes / live.total_bytes) * 100 : 0);
 
-  type Check = { level: "ok" | "warn" | "info"; text: string };
-
-  let checks = $derived.by<Check[]>(() => {
-    if (!info) return [];
-    const m = t().memory;
-    const list: Check[] = [];
-    if (modules.length > 0 && info.channels < 2) {
-      list.push({ level: "warn", text: m.singleChannel });
-    }
-    const slow = modules.filter((s) => s.speed_mts && s.configured_mts && s.configured_mts < s.speed_mts);
-    if (slow.length > 0) {
-      list.push({ level: "warn", text: m.slow(slow[0].configured_mts!, slow[0].speed_mts!) });
-    }
-    if (new Set(modules.map((s) => s.part_number)).size > 1) {
-      list.push({ level: "info", text: m.mixed });
-    }
-    if (list.length === 0 && modules.length > 0) {
-      list.push({ level: "ok", text: m.allGood });
-    }
-    return list;
-  });
+  // Os achados de memória vêm do diagnóstico geral (src-tauri/src/hw/diagnosis.rs).
+  let checks = $derived(diagnosis.data?.findings.filter((f) => f.area === "memory") ?? []);
 
   onMount(() => {
     invoke<MemoryInfo>("memory_info")
       .then((data) => (info = data))
       .catch((e) => (error = String(e)));
     loadUpgrades();
+    loadDiagnosis();
 
     const tick = async () => {
       try {
@@ -123,12 +106,17 @@
     </Card>
 
     <Card title={t().memory.diagnostics}>
-      {#if checks.length === 0}
+      {#if modules.length === 0}
         <p class="muted">{t().memory.noModulesToCheck}</p>
+      {:else if !diagnosis.data}
+        <p class="muted">{t().diagnosis.loading}</p>
       {:else}
         <ul class="checks">
           {#each checks as check}
-            <li class={check.level}>{check.text}</li>
+            {@const text = findingText(check)}
+            <li class={check.severity}><strong>{text.title}.</strong> {text.text}</li>
+          {:else}
+            <li class="ok">{t().memory.allGood}</li>
           {/each}
         </ul>
       {/if}
@@ -234,8 +222,12 @@
     border-color: var(--good);
   }
 
-  .checks .warn {
+  .checks .warning {
     border-color: var(--warn);
+  }
+
+  .checks .problem {
+    border-color: var(--hot);
   }
 
   .checks .info {

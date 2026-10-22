@@ -54,6 +54,8 @@ These links always point to the latest version. Older versions are on the [relea
 | Full report export: readable HTML page, Markdown for forums, raw JSON | TXT only | ✅ |
 | Shareable specs card (PNG, dark or light) with benchmark score | Online validation | ✅ |
 | Upgrade suggestions: which graphics card fits, how much memory to add, the socket's fastest CPU | ❌ | ✅ |
+| Gaming session: record while you play and find out whether the graphics card or the processor is the bottleneck, with throttling, full VRAM/RAM and integrated-graphics detection | ❌ | ✅ |
+| Health check with a score: XMP/EXPO left off, graphics card or SSD on fewer PCIe lanes, full or failing drive, SSD life projection, worn battery, old BIOS, USB 3 device on a USB 2 port | ❌ | ✅ |
 | Displays: model, panel, size, native resolution, refresh range, HDR, manufacture date (EDID) | ❌ | ✅ |
 | USB and Bluetooth devices with speed, power and function; peripheral batteries (Bluetooth ones on Windows) | ❌ | ✅ |
 | Audio devices with current format; cameras with resolutions and frame rates | ❌ | ✅ |

@@ -10,6 +10,7 @@
   import { isWindows, reportDialog, shareDialog } from "$lib/system.svelte";
   import type { BoardInfo, CpuInfo, CpuLive, Disk, Gpu, GpuLive, MemoryInfo, MemoryLive, SystemBattery } from "$lib/types";
   import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
+  import { diagnosis, findingCounts, findingText, loadDiagnosis } from "$lib/diagnosis.svelte";
 
   const HISTORY = 60;
 
@@ -45,6 +46,7 @@
     invoke<Disk[]>("storage_info").then((d) => (disks = d)).catch(() => (disks = []));
     invoke<SystemBattery[]>("battery_info").then((d) => (battery = d[0] ?? null)).catch(() => {});
     loadUpgrades();
+    loadDiagnosis();
 
     const tick = async () => {
       const [c, m, g] = await Promise.allSettled([
@@ -253,6 +255,17 @@
       </a>
     {/if}
 
+    {#if diagnosis.data}
+      {@const data = diagnosis.data}
+      {@const top = data.findings.find((f) => f.severity !== "info")}
+      <a class="upgrade health {data.status}" href="/diagnostico">
+        <span class="label">{t().diagnosis.score} {data.score}/100</span>
+        <strong>{top ? findingText(top).title : t().diagnosis.status[data.status]}</strong>
+        <span class="muted">{findingCounts(data)}</span>
+        <span class="more">{t().diagnosis.more} →</span>
+      </a>
+    {/if}
+
     {#if upgrades.data}
       <a class="upgrade" href="/upgrades">
         <span class="label">{t().upgrades.bestMove}</span>
@@ -384,6 +397,31 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+  }
+
+  .health {
+    border-color: var(--good);
+  }
+
+  .health .label {
+    background: var(--good);
+  }
+
+  .health.attention {
+    border-color: var(--warn);
+  }
+
+  .health.attention .label {
+    background: var(--warn);
+  }
+
+  .health.problem {
+    border-color: var(--hot);
+  }
+
+  .health.problem .label {
+    background: var(--hot);
+    color: #fff;
   }
 
   .upgrade .more {
