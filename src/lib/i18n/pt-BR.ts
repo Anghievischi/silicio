@@ -406,8 +406,6 @@ export const ptBR = {
     microcode: "Microcódigo",
     process: "Processo",
     l3Cache: "Cache L3",
-    tempAcpi: "zona térmica ACPI",
-    tempAcpiHint: "Sem driver, o Windows só expõe a zona térmica da placa, que pode diferir do núcleo.",
     cache: "Cache",
     cacheKind: { data: "Dados", instruction: "Instruções", unified: "Unificado" } as Record<string, string>,
     advanced: "Leituras avançadas",
@@ -417,8 +415,6 @@ export const ptBR = {
     baseMultiplier: "Multiplicador base",
     externalClock: "Clock externo (SMBIOS)",
     someFailed: (errors: string) => `Algumas leituras falharam: ${errors}`,
-    unlockTextWindows:
-      "Temperatura, clock máximo, tensão do núcleo e bus real exigem o driver PawnIO (oferecido pelo instalador do Silício, ou em pawnio.eu) e acesso de administrador. O Silício roda um pequeno helper só de leitura e o Windows pede a autorização; depois da primeira vez, ela é pedida ao abrir o app.",
     unlockText:
       "Soquete, tensão do núcleo e o bus real exigem acesso de administrador (registradores MSR e tabela SMBIOS). O Silício roda um pequeno helper só de leitura, e o sistema pede sua senha.",
     unlock: "Desbloquear",

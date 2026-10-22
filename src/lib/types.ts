@@ -70,7 +70,7 @@ export interface CpuLive {
   peak_mhz: number;
   usage: number;
   temperature_c: number | null;
-  temperature_source: "sensor" | "acpi" | null;
+  temperature_source: "sensor" | null;
 }
 
 export interface PcieLink {

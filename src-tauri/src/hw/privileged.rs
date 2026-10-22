@@ -1,11 +1,9 @@
-//! Leituras que exigem administrador: registradores MSR, o sensor térmico das
-//! CPUs AMD e a tabela SMBIOS bruta.
+//! Leituras que exigem root no Linux: registradores MSR e a tabela SMBIOS bruta.
 //!
-//! No Linux rodam no binário `silicio-helper`, iniciado pelo app via `pkexec`,
-//! que lê caminhos fixos e imprime JSON na saída padrão. No Windows passam pelo
-//! driver PawnIO: direto no app quando ele já roda como administrador, ou pelo
-//! mesmo helper elevado pelo UAC, que manda a temperatura a cada segundo por um
-//! named pipe (ver [`win`]).
+//! Rodam no binário `silicio-helper`, iniciado pelo app via `pkexec`, que lê
+//! caminhos fixos e imprime JSON na saída padrão. No Windows só a tabela SMBIOS
+//! é lida, pelo `GetSystemFirmwareTable`, que não exige administrador: o
+//! Silício não instala driver para ler os MSRs.
 
 use serde::{Deserialize, Serialize};
 
@@ -39,13 +37,6 @@ pub struct ThreadMsr {
     pub voltage: Option<f64>,
 }
 
-/// Linha que o helper do Windows manda a cada segundo depois do [`PrivilegedInfo`].
-#[cfg_attr(not(windows), allow(dead_code))]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct LiveReading {
-    pub temperature_c: Option<f32>,
-}
-
 #[cfg(target_os = "linux")]
 pub fn read() -> PrivilegedInfo {
     let mut info = PrivilegedInfo::default();
@@ -65,10 +56,10 @@ pub fn read() -> PrivilegedInfo {
     info
 }
 
-#[cfg(all(windows, target_arch = "x86_64"))]
+#[cfg(windows)]
 pub use win::read;
 
-#[cfg(not(any(target_os = "linux", all(windows, target_arch = "x86_64"))))]
+#[cfg(not(any(target_os = "linux", windows)))]
 pub fn read() -> PrivilegedInfo {
     PrivilegedInfo::default()
 }
@@ -136,9 +127,7 @@ fn smbios_processor(table: &[u8]) -> Option<SmbiosProcessor> {
     })
 }
 
-#[cfg(all(any(target_os = "linux", windows), target_arch = "x86_64"))]
-// A temperatura e o SMN só são usados no Windows; no Linux vêm do `k10temp`.
-#[cfg_attr(not(windows), allow(dead_code))]
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 mod msr {
     use super::{PrivilegedInfo, ThreadMsr};
     use raw_cpuid::CpuId;
@@ -147,29 +136,19 @@ mod msr {
     use std::time::{Duration, Instant};
 
     const IA32_PERF_STATUS: u64 = 0x198;
-    const IA32_TEMPERATURE_TARGET: u64 = 0x1A2;
-    const IA32_PACKAGE_THERM_STATUS: u64 = 0x1B1;
     const MSR_PLATFORM_INFO: u64 = 0xCE;
     const MSR_TURBO_RATIO_LIMIT: u64 = 0x1AD;
     const AMD_PSTATE_DEF0: u64 = 0xC001_0064;
     const AMD_HW_PSTATE_STATUS: u64 = 0xC001_0293;
     const AMD_CPPC_CAP1: u64 = 0xC001_02B0;
-    /// THM_TCON_CUR_TMP, o mesmo registrador que o `k10temp` do Linux lê.
-    const AMD_SMN_TEMPERATURE: u32 = 0x0005_9800;
 
-    /// Origem das leituras: `/dev/cpu/N/msr` no Linux, PawnIO no Windows.
+    /// Origem das leituras (`/dev/cpu/N/msr`); separada para os testes.
     pub trait Msr {
         fn read(&self, cpu: usize, reg: u64) -> io::Result<u64>;
-        /// Registrador SMN da AMD; no Linux a temperatura já vem do `k10temp`.
-        fn smn(&self, _address: u32) -> Option<u32> {
-            None
-        }
     }
 
-    #[cfg(target_os = "linux")]
     pub struct DevCpu;
 
-    #[cfg(target_os = "linux")]
     impl Msr for DevCpu {
         fn read(&self, cpu: usize, reg: u64) -> io::Result<u64> {
             use std::os::unix::fs::FileExt;
@@ -180,15 +159,6 @@ mod msr {
         }
     }
 
-    #[cfg(windows)]
-    impl Msr for crate::hw::pawnio::PawnIo {
-        fn read(&self, cpu: usize, reg: u64) -> io::Result<u64> {
-            self.msr(cpu, reg)
-        }
-        fn smn(&self, address: u32) -> Option<u32> {
-            crate::hw::pawnio::PawnIo::smn(self, address).ok()
-        }
-    }
 
     pub fn bits(value: u64, lo: u32, hi: u32) -> u64 {
         (value >> lo) & ((1 << (hi - lo + 1)) - 1)
@@ -207,7 +177,6 @@ mod msr {
         vendor: String,
         family: u8,
         model: u8,
-        brand: String,
     }
 
     fn cpu() -> Cpu {
@@ -223,10 +192,6 @@ mod msr {
                 .unwrap_or_default(),
             family,
             model,
-            brand: cpuid
-                .get_processor_brand_string()
-                .map(|b| b.as_str().trim().to_string())
-                .unwrap_or_default(),
         }
     }
 
@@ -343,75 +308,16 @@ mod msr {
         (p0_mhz as u64..=7000).contains(&mhz).then_some(mhz)
     }
 
-    /// Temperatura do processador: Tctl na AMD (via SMN), pacote na Intel.
-    pub fn temperature(m: &impl Msr) -> Option<f32> {
-        let c = cpu();
-        let celsius = match c.vendor.as_str() {
-            "AuthenticAMD" => amd_tctl(m.smn(AMD_SMN_TEMPERATURE)?, &c.brand),
-            "GenuineIntel" => {
-                let tjmax = bits(m.read(0, IA32_TEMPERATURE_TARGET).ok()?, 16, 23) as f32;
-                let below = bits(m.read(0, IA32_PACKAGE_THERM_STATUS).ok()?, 16, 22) as f32;
-                tjmax - below
-            }
-            _ => return None,
-        };
-        Some(celsius).filter(|t| (1.0..125.0).contains(t))
-    }
-
-    /// Conversão do `k10temp`: bits 31–21 em 1/8 °C, menos 49 °C na faixa
-    /// estendida, e o deslocamento que alguns Ryzen antigos somam ao Tctl.
-    pub fn amd_tctl(reg: u32, brand: &str) -> f32 {
-        const OFFSETS: [(&str, f32); 6] = [
-            ("AMD Ryzen 5 1600X", 20.0),
-            ("AMD Ryzen 7 1700X", 20.0),
-            ("AMD Ryzen 7 1800X", 20.0),
-            ("AMD Ryzen 7 2700X", 10.0),
-            ("AMD Ryzen Threadripper 19", 27.0),
-            ("AMD Ryzen Threadripper 29", 27.0),
-        ];
-        let mut t = (reg >> 21) as f32 * 0.125;
-        if reg & (1 << 19) != 0 || reg & 0x3_0000 == 0x3_0000 {
-            t -= 49.0;
-        }
-        let offset = OFFSETS
-            .iter()
-            .find(|(id, _)| brand.starts_with(id))
-            .map_or(0.0, |(_, o)| *o);
-        t - offset
-    }
 }
 
-#[cfg(all(windows, target_arch = "x86_64"))]
-pub mod win {
-    //! Leituras pelo PawnIO e o canal com o helper elevado.
-
-    use super::{LiveReading, PrivilegedInfo, msr};
-    use crate::hw::pawnio::{OpenError, PawnIo};
-    use std::io::{BufRead, BufReader, Write};
-    use std::os::windows::io::FromRawHandle;
-    use std::sync::Mutex;
-    use std::sync::atomic::{AtomicU32, Ordering};
-    use std::time::{Duration, Instant};
-    use windows::Win32::Foundation::{ERROR_CANCELLED, ERROR_PIPE_CONNECTED, HANDLE};
-    use windows::Win32::Storage::FileSystem::{FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_ACCESS_INBOUND};
-    use windows::Win32::System::Pipes::{
-        ConnectNamedPipe, CreateNamedPipeW, PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_BYTE, PIPE_WAIT,
-    };
+/// No Windows só a tabela SMBIOS, que qualquer usuário pode ler.
+#[cfg(windows)]
+mod win {
+    use super::PrivilegedInfo;
     use windows::Win32::System::SystemInformation::{GetSystemFirmwareTable, RSMB};
-    use windows::Win32::System::Threading::{INFINITE, WaitForSingleObject};
-    use windows::Win32::UI::Shell::{
-        SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW,
-    };
-    use windows::core::{HSTRING, PCWSTR, w};
 
-    /// Resultado da primeira autorização, reaproveitado nas próximas chamadas.
-    static INFO: Mutex<Option<PrivilegedInfo>> = Mutex::new(None);
-    /// Última temperatura recebida e quando chegou.
-    static TEMPERATURE: Mutex<Option<(f32, Instant)>> = Mutex::new(None);
-    static PIPE_SERIAL: AtomicU32 = AtomicU32::new(0);
-
-    /// SMBIOS pelo `GetSystemFirmwareTable` (não exige administrador). Os 8
-    /// primeiros bytes são o cabeçalho `RawSMBIOSData`.
+    /// SMBIOS pelo `GetSystemFirmwareTable`. Os 8 primeiros bytes são o
+    /// cabeçalho `RawSMBIOSData`.
     fn smbios() -> Option<Vec<u8>> {
         let size = unsafe { GetSystemFirmwareTable(RSMB, 0, None) };
         let mut buf = vec![0u8; size as usize];
@@ -419,174 +325,13 @@ pub mod win {
         (read as usize == buf.len() && buf.len() > 8).then(|| buf.split_off(8))
     }
 
-    fn read_with(io: Result<&PawnIo, &OpenError>) -> PrivilegedInfo {
+    pub fn read() -> PrivilegedInfo {
         let mut info = PrivilegedInfo::default();
         match smbios() {
             Some(table) => super::fill_smbios(&mut info, &table),
             None => info.errors.push("SMBIOS: tabela indisponível".into()),
         }
-        match io {
-            Ok(io) => msr::fill(&mut info, io),
-            Err(e) => info.errors.push(e.to_string()),
-        }
         info
-    }
-
-    /// Leitura única, usada pelo `silicio-helper` sem argumentos.
-    pub fn read() -> PrivilegedInfo {
-        let io = PawnIo::open();
-        read_with(io.as_ref())
-    }
-
-    /// Temperatura recebida do helper (ou do próprio app elevado) há menos de 5 s.
-    pub fn temperature() -> Option<f32> {
-        let guard = TEMPERATURE.lock().ok()?;
-        guard
-            .filter(|(_, at)| at.elapsed() < Duration::from_secs(5))
-            .map(|(t, _)| t)
-    }
-
-    fn set_temperature(t: Option<f32>) {
-        if let Ok(mut guard) = TEMPERATURE.lock() {
-            *guard = t.map(|t| (t, Instant::now()));
-        }
-    }
-
-    /// Clock máximo lido pelos MSRs, se a autorização já foi dada.
-    pub fn max_mhz() -> Option<u64> {
-        INFO.lock().ok()?.as_ref()?.max_mhz
-    }
-
-    /// Chamado pelo app: lê tudo uma vez e passa a atualizar a temperatura.
-    pub fn start() -> Result<PrivilegedInfo, String> {
-        if let Some(info) = INFO.lock().map_err(|e| e.to_string())?.clone() {
-            return Ok(info);
-        }
-        let info = match PawnIo::open() {
-            // O app já roda como administrador: lê aqui mesmo.
-            Ok(io) => {
-                let info = read_with(Ok(&io));
-                std::thread::spawn(move || {
-                    loop {
-                        set_temperature(msr::temperature(&io));
-                        std::thread::sleep(Duration::from_secs(1));
-                    }
-                });
-                info
-            }
-            Err(OpenError::AccessDenied) => start_helper()?,
-            Err(e) => return Err(e.to_string()),
-        };
-        *INFO.lock().map_err(|e| e.to_string())? = Some(info.clone());
-        Ok(info)
-    }
-
-    /// Cria um named pipe, roda o helper como administrador (o Windows mostra o
-    /// UAC) e lê dele o `PrivilegedInfo` e depois uma [`LiveReading`] por segundo.
-    fn start_helper() -> Result<PrivilegedInfo, String> {
-        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-        let helper = exe.with_file_name("silicio-helper.exe");
-        if !helper.exists() {
-            return Err("silicio-helper.exe não encontrado. Ele vem no instalador; a versão portátil não o inclui.".into());
-        }
-
-        let name = format!(
-            r"\\.\pipe\silicio-{}-{}",
-            std::process::id(),
-            PIPE_SERIAL.fetch_add(1, Ordering::Relaxed)
-        );
-        let pipe = unsafe {
-            CreateNamedPipeW(
-                &HSTRING::from(&name),
-                PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE,
-                PIPE_TYPE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-                1,
-                0,
-                4096,
-                0,
-                None,
-            )
-        };
-        if pipe.is_invalid() {
-            return Err(format!("named pipe: {}", std::io::Error::last_os_error()));
-        }
-        // A partir daqui o File fecha o pipe em qualquer saída.
-        let pipe_file = unsafe { std::fs::File::from_raw_handle(pipe.0) };
-
-        let file = HSTRING::from(helper.as_os_str());
-        let params = HSTRING::from(format!("--pipe {name}"));
-        let mut exec = SHELLEXECUTEINFOW {
-            cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
-            fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
-            lpVerb: w!("runas"),
-            lpFile: PCWSTR(file.as_ptr()),
-            lpParameters: PCWSTR(params.as_ptr()),
-            nShow: 0, // SW_HIDE
-            ..Default::default()
-        };
-        if let Err(e) = unsafe { ShellExecuteExW(&mut exec) } {
-            return Err(if e.code() == ERROR_CANCELLED.to_hresult() {
-                "Autorização cancelada.".into()
-            } else {
-                format!("não foi possível iniciar o helper: {e}")
-            });
-        }
-
-        // Se o helper morrer antes de conectar, o ConnectNamedPipe ficaria
-        // esperando para sempre; conectar nós mesmos o destrava (e a leitura
-        // seguinte encontra o fim do arquivo).
-        let process = exec.hProcess.0 as usize;
-        let pipe_name = name.clone();
-        std::thread::spawn(move || {
-            unsafe { WaitForSingleObject(HANDLE(process as *mut _), INFINITE) };
-            let _ = std::fs::OpenOptions::new().write(true).open(&pipe_name);
-        });
-
-        if let Err(e) = unsafe { ConnectNamedPipe(pipe, None) }
-            && e.code() != ERROR_PIPE_CONNECTED.to_hresult()
-        {
-            return Err(format!("named pipe: {e}"));
-        }
-
-        let mut reader = BufReader::new(pipe_file);
-        let mut line = String::new();
-        reader.read_line(&mut line).map_err(|e| e.to_string())?;
-        if line.trim().is_empty() {
-            return Err("o helper fechou sem responder.".into());
-        }
-        let info: PrivilegedInfo =
-            serde_json::from_str(&line).map_err(|e| format!("resposta inválida do helper: {e}"))?;
-
-        std::thread::spawn(move || {
-            for line in reader.lines() {
-                let Ok(line) = line else { break };
-                if let Ok(r) = serde_json::from_str::<LiveReading>(&line) {
-                    set_temperature(r.temperature_c);
-                }
-            }
-            set_temperature(None);
-        });
-        Ok(info)
-    }
-
-    /// Lado do helper: conecta no pipe do app e escreve até o app fechar.
-    pub fn serve(pipe_name: &str) -> std::io::Result<()> {
-        if !pipe_name.starts_with(r"\\.\pipe\silicio-") {
-            return Err(std::io::Error::other("pipe inválido"));
-        }
-        let mut pipe = std::fs::OpenOptions::new().write(true).open(pipe_name)?;
-        let io = PawnIo::open();
-        let info = read_with(io.as_ref());
-        writeln!(pipe, "{}", serde_json::to_string(&info)?)?;
-        let Ok(io) = io else { return Ok(()) };
-        loop {
-            let reading = LiveReading {
-                temperature_c: msr::temperature(&io),
-            };
-            // Falha quando o app fecha o pipe: é a hora de sair.
-            writeln!(pipe, "{}", serde_json::to_string(&reading)?)?;
-            std::thread::sleep(Duration::from_secs(1));
-        }
     }
 }
 
@@ -630,22 +375,8 @@ mod tests {
         assert_eq!(string_at(&strings, header[4]).as_deref(), Some("Insyde"));
     }
 
-    #[cfg(target_arch = "x86_64")]
-    #[test]
-    fn temperatura_amd() {
-        // 45 °C direto, 94 − 49 °C na faixa estendida e 65 − 20 °C de offset no 1800X.
-        assert_eq!(msr::amd_tctl(360 << 21, "AMD Ryzen 5 5600X"), 45.0);
-        assert_eq!(
-            msr::amd_tctl(752 << 21 | 1 << 19, "AMD Ryzen 9 7950X"),
-            45.0
-        );
-        assert_eq!(
-            msr::amd_tctl(520 << 21, "AMD Ryzen 7 1800X Eight-Core Processor"),
-            45.0
-        );
-    }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     #[test]
     fn boost_amd_pelo_cppc() {
         let cap = |highest: u64, nominal: u64| highest << 24 | nominal << 16;

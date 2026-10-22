@@ -402,8 +402,6 @@ export const en: Messages = {
     microcode: "Microcode",
     process: "Process",
     l3Cache: "L3 cache",
-    tempAcpi: "ACPI thermal zone",
-    tempAcpiHint: "Without a driver, Windows only exposes the board thermal zone, which may differ from the core.",
     cache: "Cache",
     cacheKind: { data: "Data", instruction: "Instruction", unified: "Unified" },
     advanced: "Advanced readings",
@@ -413,8 +411,6 @@ export const en: Messages = {
     baseMultiplier: "Base multiplier",
     externalClock: "External clock (SMBIOS)",
     someFailed: (errors) => `Some readings failed: ${errors}`,
-    unlockTextWindows:
-      "Temperature, max clock, core voltage and real bus clock need the PawnIO driver (offered by the Silício installer, or at pawnio.eu) and administrator access. Silício runs a small read-only helper and Windows asks for permission; after the first time, it is asked when the app opens.",
     unlockText:
       "Socket, core voltage and real bus clock need administrator access (MSR registers and the SMBIOS table). Silício runs a small read-only helper and the system asks for your password.",
     unlock: "Unlock",

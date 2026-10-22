@@ -2,6 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { t } from "$lib/i18n/index.svelte";
+  import { isWindows } from "$lib/system.svelte";
   import type { CpuLive } from "$lib/types";
 
   // Os Ryzen 7000 ficam em 95 °C sob carga por projeto e a maioria dos Intel reduz
@@ -19,11 +20,12 @@
   let visible = $derived(hot >= SAMPLES && Date.now() >= snoozedUntil);
 
   onMount(() => {
+    // Sem sensor do processador no Windows, não há o que vigiar.
+    if (isWindows) return;
     const tick = async () => {
       try {
         const live = await invoke<CpuLive>("cpu_live");
-        // A zona térmica ACPI não é o sensor do processador: não serve para alertar.
-        const temp = live.temperature_source === "sensor" ? live.temperature_c : null;
+        const temp = live.temperature_c;
         if (temp != null && temp >= LIMIT_C) {
           hot += 1;
           peak = Math.max(peak, temp);

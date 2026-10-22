@@ -18,8 +18,10 @@ imagem do CPU-Z é copiado.
 | RT_STRING | 13 | Mensagens padrão do MFC |
 
 Os três drivers embutidos confirmam o que se esperava: o acesso de baixo nível
-no Windows depende de um driver próprio. No Silício isso vai usar o **PawnIO**
-(o WinRing0 é marcado como vulnerável pelo Windows Defender).
+no Windows depende de um driver próprio. O Silício decidiu não instalar driver
+nenhum no Windows: o PawnIO chegou a ser oferecido na 0.6.1, mas derrubou o
+sistema de um usuário na instalação e foi removido na 0.6.2 (o WinRing0, usado
+por várias ferramentas, é marcado como vulnerável pelo Windows Defender).
 
 ## Campos por aba
 

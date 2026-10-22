@@ -5,6 +5,7 @@
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { ghz } from "$lib/format";
   import { i18n, t } from "$lib/i18n/index.svelte";
+  import { isWindows } from "$lib/system.svelte";
   import type { BenchResult, CpuInfo, CpuLive, StressStatus } from "$lib/types";
 
   type Run = { date: string; seconds: number; single: number; multi: number; threads: number };
@@ -209,10 +210,12 @@
         <div><span class="muted">{t().bench.time}</span><strong class="num">{time(stress?.seconds ?? 0)}</strong></div>
         <div><span class="muted">{t().bench.avgClock}</span><strong class="num">{ghz(live?.avg_mhz)}</strong></div>
         <div><span class="muted">{t().bench.initialPeak}</span><strong class="num">{ghz(peakMhz)}</strong></div>
-        <div>
-          <span class="muted">{t().common.temperature}</span>
-          <strong class="num">{live?.temperature_c != null ? `${live.temperature_c.toFixed(0)} °C` : "—"}</strong>
-        </div>
+        {#if !isWindows}
+          <div>
+            <span class="muted">{t().common.temperature}</span>
+            <strong class="num">{live?.temperature_c != null ? `${live.temperature_c.toFixed(0)} °C` : "—"}</strong>
+          </div>
+        {/if}
         <div><span class="muted">{t().common.usage}</span><strong class="num">{live ? `${live.usage.toFixed(0)}%` : "—"}</strong></div>
       </div>
       <div class="charts">
@@ -220,10 +223,12 @@
           <span class="muted label">{t().bench.clockChart}</span>
           <Sparkline values={clocks} max={Math.max(cpu?.clocks.max_mhz ?? 0, peakMhz, 1000)} capacity={LIVE_POINTS} />
         </div>
-        <div>
-          <span class="muted label">{t().common.temperature}</span>
-          <Sparkline values={temps} max={105} capacity={LIVE_POINTS} />
-        </div>
+        {#if !isWindows}
+          <div>
+            <span class="muted label">{t().common.temperature}</span>
+            <Sparkline values={temps} max={105} capacity={LIVE_POINTS} />
+          </div>
+        {/if}
       </div>
       {#if throttling}
         <p class="warn">{t().bench.throttling}</p>

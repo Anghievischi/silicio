@@ -74,8 +74,7 @@ pub struct CpuLive {
     pub peak_mhz: u64,
     pub usage: f32,
     pub temperature_c: Option<f32>,
-    /// "sensor" (sensor do processador) ou "acpi" (zona térmica da placa, no
-    /// Windows sem driver), que nem sempre corresponde ao núcleo.
+    /// "sensor" quando há leitura do sensor do processador.
     pub temperature_source: Option<&'static str>,
 }
 
@@ -157,9 +156,13 @@ impl LiveSampler {
 
     pub fn sample(&mut self) -> CpuLive {
         self.sys.refresh_cpu_specifics(CpuRefreshKind::everything());
-        match &mut self.components {
-            Some(components) => components.refresh(false),
-            None => self.components = Some(Components::new_with_refreshed_list()),
+        // No Windows a temperatura do processador exigiria um driver de kernel,
+        // que o Silício não usa; os sensores ficam só no Linux (hwmon).
+        if !cfg!(windows) {
+            match &mut self.components {
+                Some(components) => components.refresh(false),
+                None => self.components = Some(Components::new_with_refreshed_list()),
+            }
         }
 
         let threads: Vec<ThreadLive> = self
@@ -172,14 +175,8 @@ impl LiveSampler {
             })
             .collect();
         let n = threads.len().max(1) as u64;
-        let sensor = self.cpu_temperature().or_else(platform::driver_celsius);
-        let (temperature_c, temperature_source) = match sensor {
-            Some(t) => (Some(t), Some("sensor")),
-            None => match platform::thermal_zone_celsius() {
-                Some(t) => (Some(t), Some("acpi")),
-                None => (None, None),
-            },
-        };
+        let temperature_c = self.cpu_temperature();
+        let temperature_source = temperature_c.map(|_| "sensor");
 
         CpuLive {
             avg_mhz: threads.iter().map(|t| t.mhz).sum::<u64>() / n,
@@ -355,14 +352,6 @@ mod platform {
         }
     }
 
-    /// No Linux o hwmon já traz o sensor do processador.
-    pub fn driver_celsius() -> Option<f32> {
-        None
-    }
-
-    pub fn thermal_zone_celsius() -> Option<f32> {
-        None
-    }
 
     /// Agrupa as threads pelo par (pacote, core_id) que o kernel expõe.
     pub fn topology(threads: usize, cores: usize) -> Vec<Core> {
@@ -421,7 +410,6 @@ mod platform {
 #[cfg(windows)]
 mod platform {
     use super::{ClockRange, Core};
-    use crate::hw::wmi;
     use windows::Win32::Foundation::ERROR_SUCCESS;
     use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_BINARY, RegGetValueW};
     use windows::Win32::System::SystemInformation::{
@@ -456,8 +444,7 @@ mod platform {
     }
 
     /// Só o CPUID 0x16 (Intel) informa o clock máximo sem driver; o "~MHz" do
-    /// Registro é o clock base, que mostraríamos errado como máximo. Depois que
-    /// o usuário autoriza o PawnIO, o máximo vem dos MSRs (AMD e Intel).
+    /// Registro é o clock base, que mostraríamos errado como máximo.
     pub fn clock_range() -> ClockRange {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         let max = raw_cpuid::CpuId::new()
@@ -466,8 +453,6 @@ mod platform {
             .filter(|mhz| *mhz > 0);
         #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
         let max = None;
-        #[cfg(target_arch = "x86_64")]
-        let max = max.or_else(crate::hw::privileged::win::max_mhz);
         ClockRange {
             max_mhz: max,
             ..ClockRange::default()
@@ -561,25 +546,6 @@ mod platform {
         out
     }
 
-    /// Sensor do processador lido pelo PawnIO, depois da autorização.
-    pub fn driver_celsius() -> Option<f32> {
-        #[cfg(target_arch = "x86_64")]
-        return crate::hw::privileged::win::temperature();
-        #[cfg(not(target_arch = "x86_64"))]
-        None
-    }
-
-    /// Zona térmica ACPI pelos contadores de desempenho (não exige administrador).
-    pub fn thermal_zone_celsius() -> Option<f32> {
-        wmi::query(
-            "SELECT Temperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation",
-        )
-        .iter()
-        .filter_map(|row| wmi::number(row, "Temperature"))
-        .map(|kelvin| kelvin as f32 - 273.15)
-        .filter(|c| (1.0..130.0).contains(c))
-        .reduce(f32::max)
-    }
 }
 
 #[cfg(not(any(target_os = "linux", windows)))]
@@ -598,13 +564,6 @@ mod platform {
         super::sequential_topology(threads, cores)
     }
 
-    pub fn driver_celsius() -> Option<f32> {
-        None
-    }
-
-    pub fn thermal_zone_celsius() -> Option<f32> {
-        None
-    }
 }
 
 /// Windows e macOS numeram as threads irmãs (SMT) em sequência.
