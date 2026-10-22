@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 PackageIdentifier: Anghievischi.Silicio
-PackageVersion: 0.6.1
+PackageVersion: 0.6.2
 InstallerType: nullsoft
 Scope: user
 InstallModes:
@@ -9,7 +9,7 @@ InstallModes:
 UpgradeBehavior: install
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/Anghievischi/silicio/releases/download/v0.6.1/Silicio_0.6.1_x64-setup.exe
-  InstallerSha256: 836C885A41EBBC54DD0B4AE3C40674C756F713088D10AFE3E4393FFE33B2F3EC
+  InstallerUrl: https://github.com/Anghievischi/silicio/releases/download/v0.6.2/Silicio_0.6.2_x64-setup.exe
+  InstallerSha256: 515CC803B144F6E154042750D123F89C878859F0B2039E44ADD0F34F910DB4DD
 ManifestType: installer
 ManifestVersion: 1.9.0
