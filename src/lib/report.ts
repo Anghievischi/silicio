@@ -6,6 +6,7 @@ import {
   batteryHealth,
   bytes,
   cameraSummary,
+  clock,
   diskInterface,
   diskName,
   diskSize,
@@ -19,12 +20,15 @@ import {
   smbiosDate,
   usbSpeed,
 } from "$lib/format";
+import { findingCounts, findingText } from "$lib/diagnosis.svelte";
+import { sessionFindingText } from "$lib/gaming.svelte";
 import { i18n, t } from "$lib/i18n/index.svelte";
 import { privileged } from "$lib/privileged.svelte";
 import type {
   BoardInfo,
   CpuInfo,
   CpuLive,
+  Diagnosis,
   Disk,
   Gpu,
   GpuLive,
@@ -32,6 +36,7 @@ import type {
   MemoryLive,
   PcieLink,
   Peripherals,
+  SessionReport,
   SpdModule,
   SystemBattery,
   SystemInfo,
@@ -66,6 +71,8 @@ interface Data {
   battery: SystemBattery[];
   peripherals: Peripherals | null;
   upgrades: Upgrades | null;
+  diagnosis: Diagnosis | null;
+  session: SessionReport | null;
   privileged: typeof privileged.data;
   bench: { date: string; single: number; multi: number; threads: number } | null;
   generatedAt: string;
@@ -74,7 +81,7 @@ interface Data {
 /** Lê todos os componentes; o que falhar fica de fora em vez de interromper o relatório. */
 export async function collect(): Promise<Data> {
   const get = <T>(cmd: string) => invoke<T>(cmd).catch(() => null);
-  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, storage, battery, peripherals, upgrades] = await Promise.all([
+  const [system, cpu, cpuLive, board, memory, memoryLive, spd, gpus, gpuLive, storage, battery, peripherals, upgrades, diagnosis, session] = await Promise.all([
     get<SystemInfo>("system_info"),
     get<CpuInfo>("cpu_info"),
     get<CpuLive>("cpu_live"),
@@ -88,6 +95,8 @@ export async function collect(): Promise<Data> {
     get<SystemBattery[]>("battery_info"),
     get<Peripherals>("peripherals_info"),
     get<Upgrades>("upgrade_info"),
+    get<Diagnosis>("diagnosis_info"),
+    get<SessionReport | null>("session_report"),
   ]);
   let bench: Data["bench"] = null;
   try {
@@ -109,6 +118,9 @@ export async function collect(): Promise<Data> {
     battery: battery ?? [],
     peripherals,
     upgrades,
+    diagnosis,
+    // As amostras ficam no CSV da aba Jogos; aqui vai só o laudo.
+    session: session ? { ...session, samples: [] } : null,
     privileged: privileged.data,
     bench,
     generatedAt: new Date().toISOString(),
@@ -486,6 +498,46 @@ function sections(d: Data): Section[] {
       });
     }
     out.push({ id: "peripherals", title: m.tabs.peripherals, blocks });
+  }
+
+  if (d.diagnosis) {
+    const g = m.diagnosis;
+    const blocks: Block[] = [
+      {
+        kind: "kv",
+        rows: [
+          [g.score, `${d.diagnosis.score}/100 · ${g.status[d.diagnosis.status]}`],
+          [g.title, findingCounts(d.diagnosis)],
+        ],
+      },
+    ];
+    if (d.diagnosis.findings.length) {
+      blocks.push({
+        kind: "table",
+        head: [m.report.item, m.report.value],
+        rows: d.diagnosis.findings.map((f) => {
+          const text = findingText(f);
+          const title = `[${g.severity[f.severity]}] ${text.title}${f.subject ? ` (${f.subject})` : ""}`;
+          return [title, text.text];
+        }),
+      });
+    }
+    out.push({ id: "diagnosis", title: g.title, blocks });
+  }
+
+  if (d.session) {
+    const g = m.gaming;
+    const r = d.session;
+    const verdict = g.verdict[r.verdict](r);
+    const rows: [string, string][] = [
+      [verdict.title, g.duration(clock(r.seconds), clock(r.load_seconds))],
+      [g.limitsTitle, r.limits.map((l) => `${g.limit[l.code]} ${l.pct}%`).join(" · ")],
+    ];
+    for (const f of r.findings) {
+      const text = sessionFindingText(f, r);
+      rows.push([text.title, text.text]);
+    }
+    out.push({ id: "gaming", title: g.lastSession, blocks: [{ kind: "kv", rows }] });
   }
 
   const up = d.upgrades;

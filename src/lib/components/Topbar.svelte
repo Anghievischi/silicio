@@ -2,7 +2,7 @@
   import type { Messages } from "$lib/i18n/pt-BR";
   import { system } from "$lib/system.svelte";
 
-  // As abas seguem as do CPU-Z, mais Upgrades; `key` aponta para o nome traduzido.
+  // As abas seguem as do CPU-Z, mais Upgrades, Diagnóstico e Jogos; `key` aponta para o nome traduzido.
   export const tabs: { href: string; key: keyof Messages["tabs"] }[] = [
     { href: "/", key: "overview" },
     { href: "/processador", key: "cpu" },
@@ -15,6 +15,8 @@
     { href: "/perifericos", key: "peripherals" },
     { href: "/benchmark", key: "bench" },
     { href: "/upgrades", key: "upgrades" },
+    { href: "/diagnostico", key: "diagnosis" },
+    { href: "/jogos", key: "gaming" },
   ];
 
   /** Abas mostradas: a de bateria só em notebooks. */
@@ -265,7 +267,7 @@
     clip: rect(0 0 0 0);
   }
 
-  /* Com 11 abas, os números não cabem junto dos nomes em janelas médias;
+  /* Com 13 abas, os números não cabem junto dos nomes em janelas médias;
      o atalho continua no título da aba. */
   @media (min-width: 861px) and (max-width: 1360px) {
     .tab .key {

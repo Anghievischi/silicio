@@ -240,6 +240,7 @@ export interface GpuLive {
   voltage_mv: number | null;
   fan_rpm: number | null;
   fan_percent: number | null;
+  limit: "thermal" | "power" | null;
 }
 
 export interface BenchResult {
@@ -454,4 +455,116 @@ export interface SystemBattery {
   power_w: number | null;
   voltage_v: number | null;
   ac_online: boolean | null;
+}
+
+// Espelha src-tauri/src/hw/diagnosis.rs.
+
+export type FindingKind =
+  | { code: "memory-single-channel" }
+  | { code: "memory-profile-off"; profile: "xmp" | "expo"; current_mts: number; profile_mts: number }
+  | { code: "memory-below-rated"; current_mts: number; rated_mts: number }
+  | { code: "memory-mixed" }
+  | { code: "memory-low"; installed_bytes: number }
+  | { code: "cpu-powersave"; driver: string }
+  | { code: "gpu-link-narrow"; current_width: number; max_width: number }
+  | { code: "gpu-no-driver" }
+  | { code: "gpu-nouveau" }
+  | { code: "disk-failing" }
+  | { code: "disk-caution"; life_left: number | null; bad_sectors: number | null }
+  | { code: "disk-life"; life_left: number; hours_left: number }
+  | { code: "disk-full"; mount_point: string; free_bytes: number; free_pct: number }
+  | { code: "disk-hot"; temperature_c: number }
+  | { code: "system-on-hdd"; mount_point: string }
+  | { code: "disk-link-narrow"; current_width: number; max_width: number }
+  | { code: "battery-worn"; health_pct: number; cycles: number | null }
+  | { code: "bios-old"; years: number }
+  | { code: "usb-slow-port"; speed_mbps: number };
+
+export type Finding = FindingKind & {
+  severity: "info" | "warning" | "problem";
+  area: "memory" | "cpu" | "gpu" | "storage" | "battery" | "board" | "peripherals";
+  subject: string | null;
+};
+
+/** Achado de um código específico, com os campos dele. */
+export type FindingOf<C extends Finding["code"]> = Extract<Finding, { code: C }>;
+
+export interface Diagnosis {
+  status: "good" | "attention" | "problem";
+  score: number;
+  findings: Finding[];
+}
+
+// Espelha src-tauri/src/session.rs.
+
+export interface SessionSample {
+  t: number;
+  cpu_usage: number;
+  thread_max: number;
+  cpu_mhz: number;
+  cpu_temp: number | null;
+  gpu_usage: number | null;
+  gpu_mhz: number | null;
+  gpu_temp: number | null;
+  gpu_power: number | null;
+  gpu_limit: "thermal" | "power" | null;
+  vram_used: number | null;
+  igpu_usage: number | null;
+  ram_used: number;
+  swap_used: number;
+  on_battery: boolean | null;
+}
+
+export interface SessionStatus {
+  running: boolean;
+  seconds: number;
+  samples: number;
+  last: SessionSample | null;
+  has_report: boolean;
+}
+
+type Throttle = {
+  peak_mhz: number;
+  low_mhz: number;
+  seconds: number;
+  first_at: number;
+  cause: "heat" | "power" | "unknown";
+  temp_max: number | null;
+};
+
+export type SessionFinding = { severity: "info" | "warning" | "problem" } & (
+  | { code: "wrong-gpu" }
+  | ({ code: "cpu-throttle" } & Throttle)
+  | { code: "cpu-hot"; temp_max: number; seconds: number }
+  | ({ code: "gpu-throttle"; reported: boolean } & Throttle)
+  | { code: "gpu-thermal-limit"; seconds: number; temp_max: number | null }
+  | { code: "gpu-hot"; temp_max: number; seconds: number }
+  | { code: "vram-full"; peak_bytes: number; total_bytes: number }
+  | { code: "ram-full"; peak_bytes: number; total_bytes: number; swap_growth_bytes: number }
+  | { code: "on-battery"; seconds: number }
+  | { code: "short-session"; load_seconds: number }
+);
+
+export type SessionFindingOf<C extends SessionFinding["code"]> = Extract<SessionFinding, { code: C }>;
+
+export type SessionLimit = "gpu" | "cpu" | "vram" | "ram" | "thermal" | "capped";
+
+export interface SessionStat {
+  avg: number;
+  max: number;
+}
+
+export interface SessionReport {
+  seconds: number;
+  load_seconds: number;
+  verdict: SessionLimit | "balanced" | "idle";
+  /** Parte do tempo de jogo em cada limite, da maior para a menor. */
+  limits: { code: SessionLimit; pct: number }[];
+  findings: SessionFinding[];
+  stats: Record<
+    "cpu_usage" | "thread_max" | "cpu_mhz" | "cpu_temp" | "gpu_usage" | "gpu_mhz" | "gpu_temp" | "gpu_power" | "vram_used" | "ram_used",
+    SessionStat | null
+  >;
+  context: { gpu_name: string | null; dedicated: boolean; hybrid: boolean; vram_total: number | null; ram_total: number };
+  samples: SessionSample[];
 }

@@ -54,6 +54,8 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Exportação do relatório completo: página HTML fácil de ler, Markdown para fóruns e JSON bruto | Só TXT | ✅ |
 | Cartão de especificações para compartilhar (PNG, escuro ou claro) com a pontuação do benchmark | Validação online | ✅ |
 | Sugestões de upgrade: que placa de vídeo cabe, quanta memória adicionar, o processador mais rápido do soquete | ❌ | ✅ |
+| Sessão de jogo: grave enquanto joga e descubra se o gargalo é a placa de vídeo ou o processador, com detecção de throttling, VRAM/RAM cheia e jogo na placa integrada | ❌ | ✅ |
+| Diagnóstico com nota: XMP/EXPO desligado, placa de vídeo ou SSD com menos linhas PCIe, disco cheio ou falhando, projeção da vida útil do SSD, bateria gasta, BIOS antigo, dispositivo USB 3 em porta USB 2 | ❌ | ✅ |
 | Telas: modelo, painel, tamanho, resolução nativa, faixa de atualização, HDR, data de fabricação (EDID) | ❌ | ✅ |
 | Dispositivos USB e Bluetooth com velocidade, consumo e função; bateria de periféricos (no Windows, os Bluetooth) | ❌ | ✅ |
 | Dispositivos de áudio com o formato em uso; câmeras com resoluções e taxas de quadros | ❌ | ✅ |

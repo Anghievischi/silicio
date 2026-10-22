@@ -4,6 +4,7 @@ pub mod codenames;
 pub mod cpu;
 #[cfg(windows)]
 pub mod devnode;
+pub mod diagnosis;
 pub mod edid;
 pub mod gpu;
 pub mod memory;

@@ -1,6 +1,16 @@
 // Textos da interface em português. É a referência: o inglês (en.ts) precisa
 // ter exatamente as mesmas chaves, e o TypeScript acusa qualquer diferença.
 
+import { bytes, clock, ghz } from "$lib/format";
+import type { FindingOf, SessionFindingOf, SessionLimit, SessionReport } from "$lib/types";
+
+/** "45 s", "2 min 30 s", "1 h 05 min". */
+const dur = (s: number) =>
+  s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ""}` : `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min`;
+
+/** Parte do tempo de jogo (%) em que `code` foi o limite. */
+const pctOf = (r: SessionReport, code: SessionLimit) => r.limits.find((l) => l.code === code)?.pct ?? 0;
+
 export const ptBR = {
   tabs: {
     overview: "Visão geral",
@@ -14,6 +24,8 @@ export const ptBR = {
     peripherals: "Periféricos",
     bench: "Benchmark",
     upgrades: "Upgrades",
+    diagnosis: "Diagnóstico",
+    gaming: "Jogos",
   },
   common: {
     soon: "em breve",
@@ -277,6 +289,277 @@ export const ptBR = {
     disclaimer:
       "Sugestões geradas a partir dos dados do sistema. Confirme as especificações com o fabricante antes de comprar.",
   },
+  diagnosis: {
+    title: "Diagnóstico",
+    intro: "O que está deixando este computador mais lento ou perto de dar problema, e o que fazer.",
+    loading: "Analisando o computador…",
+    error: "Não foi possível fazer o diagnóstico",
+    status: {
+      good: "Tudo em ordem",
+      attention: "Precisa de atenção",
+      problem: "Há problemas",
+    } as Record<string, string>,
+    score: "Nota",
+    counts: (problems: number, warnings: number, tips: number) =>
+      [
+        problems && `${problems} problema${problems > 1 ? "s" : ""}`,
+        warnings && `${warnings} ${warnings > 1 ? "avisos" : "aviso"}`,
+        tips && `${tips} dica${tips > 1 ? "s" : ""}`,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "Nada a apontar",
+    severity: { problem: "Problema", warning: "Atenção", info: "Dica" } as Record<string, string>,
+    none: "Nenhum problema encontrado na memória, no processador, nos discos, na bateria nem nos periféricos.",
+    open: (tab: string) => `Ver em ${tab}`,
+    more: "Ver diagnóstico",
+    disclaimer:
+      "O diagnóstico usa só o que o sistema informa, sem rodar testes. Uma regra só aparece quando o dado lido deixa claro o problema.",
+    findings: {
+      "memory-single-channel": () => ({
+        title: "Memória em single channel",
+        text: "Com um só canal, a memória tem metade da largura de banda. Um segundo módulo igual, no slot do outro canal, faz muita diferença em jogos e no vídeo integrado.",
+      }),
+      "memory-profile-off": (f: FindingOf<"memory-profile-off">) => {
+        const name = f.profile.toUpperCase();
+        const gain = Math.round((f.profile_mts / f.current_mts - 1) * 100);
+        return {
+          title: `Perfil ${name} desligado`,
+          text: `A memória roda a ${f.current_mts} MT/s, mas o kit tem um perfil de ${f.profile_mts} MT/s (${gain}% mais rápido). Ative o ${name} no BIOS; algumas placas chamam de DOCP ou "perfil de memória".`,
+        };
+      },
+      "memory-below-rated": (f: FindingOf<"memory-below-rated">) => ({
+        title: "Memória abaixo da velocidade nominal",
+        text: `Os módulos rodam a ${f.current_mts} MT/s, abaixo dos ${f.rated_mts} MT/s que eles informam. No desktop, ative o XMP/EXPO no BIOS; em notebooks o limite costuma ser do processador.`,
+      }),
+      "memory-mixed": () => ({
+        title: "Módulos de modelos diferentes",
+        text: "Funciona, mas kits iguais costumam ser mais estáveis. Se aparecerem travamentos, teste só com módulos iguais.",
+      }),
+      "memory-low": (f: FindingOf<"memory-low">) => ({
+        title: `Só ${bytes(f.installed_bytes)} de memória`,
+        text:
+          f.installed_bytes < 7 * 1024 ** 3
+            ? "Com tão pouca memória, o sistema passa a usar o disco (swap) e fica lento. 16 GB é o ponto confortável hoje; veja a aba Upgrades."
+            : "Dá para o dia a dia, mas fica apertado com muitas abas do navegador e jogos atuais. 16 GB é o ponto confortável hoje; veja a aba Upgrades.",
+      }),
+      "cpu-powersave": (f: FindingOf<"cpu-powersave">) => ({
+        title: "Processador preso no clock mínimo",
+        text: `Com o driver ${f.driver}, o governor "powersave" mantém o processador na menor frequência. Troque para "schedutil" (por exemplo, sudo cpupower frequency-set -g schedutil) ou mude o perfil de energia do sistema.`,
+      }),
+      "gpu-link-narrow": (f: FindingOf<"gpu-link-narrow">) => ({
+        title: `Placa de vídeo em PCIe x${f.current_width}`,
+        text: `Ela suporta x${f.max_width}, mas está ligada com ${f.current_width} linhas. Confira se está no slot principal (o mais perto do processador) e se um SSD M.2 ou outra placa não divide as linhas com ela.`,
+      }),
+      "gpu-no-driver": () => ({
+        title: "Placa de vídeo sem driver",
+        text: "O sistema encontrou a placa dedicada, mas nenhum driver está carregado, então ela não está sendo usada. Instale o driver do fabricante.",
+      }),
+      "gpu-nouveau": () => ({
+        title: "NVIDIA com o driver nouveau",
+        text: "O driver livre nouveau não consegue subir o clock das placas recentes, que ficam bem mais lentas. Para jogos e criação, instale o driver da NVIDIA.",
+      }),
+      "disk-failing": () => ({
+        title: "Disco falhando",
+        text: "O próprio disco informa que está com defeito. Faça backup agora e planeje a troca: ele pode parar de funcionar a qualquer momento.",
+      }),
+      "disk-caution": (f: FindingOf<"disk-caution">) => ({
+        title: "Disco com sinais de desgaste",
+        text: [
+          f.life_left != null && f.life_left <= 10 && `Restam ${f.life_left}% da vida útil.`,
+          f.bad_sectors && `Há ${f.bad_sectors} setores ruins.`,
+          "Mantenha o backup em dia e acompanhe a saúde na aba Armazenamento.",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      }),
+      "disk-life": (f: FindingOf<"disk-life">) => {
+        const years = f.hours_left / (8 * 365);
+        return {
+          title: `Vida útil do SSD: ${f.life_left}%`,
+          text: `No ritmo de uso até aqui, ele ainda deve aguentar cerca de ${Math.round(f.hours_left / 1000)} mil horas ligado (${years > 20 ? "mais de 20 anos" : `uns ${Math.max(1, Math.round(years))} ano${Math.round(years) > 1 ? "s" : ""}`} usando 8 horas por dia).`,
+        };
+      },
+      "disk-full": (f: FindingOf<"disk-full">) => ({
+        title: `${f.mount_point} quase cheio`,
+        text: `Restam ${bytes(f.free_bytes)} (${f.free_pct}%). Com o disco cheio, o sistema fica lento, atualizações falham e SSDs perdem velocidade de escrita. Libere espaço ou mova arquivos grandes.`,
+      }),
+      "disk-hot": (f: FindingOf<"disk-hot">) => ({
+        title: `Disco a ${Math.round(f.temperature_c)} °C`,
+        text: "Nessa temperatura o SSD reduz a velocidade para se proteger, e HDs se desgastam mais rápido. Melhore a ventilação ou use um dissipador no SSD M.2.",
+      }),
+      "system-on-hdd": (f: FindingOf<"system-on-hdd">) => ({
+        title: "Sistema num HD mecânico",
+        text: `O ${f.mount_point} fica num disco mecânico. Trocar por um SSD é o upgrade que mais acelera o dia a dia: ligar, abrir programas e atualizar.`,
+      }),
+      "disk-link-narrow": (f: FindingOf<"disk-link-narrow">) => ({
+        title: `SSD em PCIe x${f.current_width}`,
+        text: `Ele suporta x${f.max_width}. Algumas placas reduzem as linhas de um slot M.2 quando outro está ocupado; o manual da placa diz qual slot tem x4 completo.`,
+      }),
+      "battery-worn": (f: FindingOf<"battery-worn">) => ({
+        title: `Bateria com ${f.health_pct}% da capacidade original`,
+        text: `${f.cycles ? `Depois de ${f.cycles} ciclos, ela` : "Ela"} segura ${f.health_pct}% da carga de quando era nova. ${f.health_pct < 60 ? "Já vale trocar." : "É desgaste normal: troque quando a autonomia não bastar mais."}`,
+      }),
+      "bios-old": (f: FindingOf<"bios-old">) => ({
+        title: `BIOS com mais de ${f.years} anos`,
+        text: "Atualizações do BIOS corrigem falhas de segurança, compatibilidade de memória e estabilidade. Veja se há versão nova no site do fabricante e não desligue o computador durante a atualização.",
+      }),
+      "usb-slow-port": (f: FindingOf<"usb-slow-port">) => ({
+        title: "Dispositivo USB 3 numa porta USB 2",
+        text: `Ele está ligado a ${f.speed_mbps} Mbps, uma fração do que suporta. Use uma porta USB 3 (geralmente azul ou marcada com SS) e um cabo USB 3.`,
+      }),
+    },
+  },
+  gaming: {
+    title: "Sessão de jogo",
+    intro: "Grave enquanto joga: o Silício mede processador, placa de vídeo e memória a cada segundo e diz o que limita o desempenho.",
+    howTo: [
+      "Clique em Gravar sessão.",
+      "Abra o jogo e jogue normalmente por alguns minutos. Pode minimizar o Silício.",
+      "Volte aqui e clique em Parar e analisar.",
+    ],
+    noFps: "O Silício não mede FPS: no Linux isso exigiria entrar no processo do jogo, e no Windows, rodar como administrador. O laudo vem do comportamento do hardware.",
+    start: "Gravar sessão",
+    stop: "Parar e analisar",
+    starting: "Iniciando…",
+    newSession: "Nova sessão",
+    recording: "Gravando",
+    recordingHint: "Pode abrir o jogo. A gravação continua com o Silício minimizado ou em outra aba.",
+    error: "Não foi possível gravar a sessão",
+    live: {
+      cpu: "CPU",
+      thread: "Thread mais ocupada",
+      gpu: "GPU",
+      cpuTemp: "Temp. CPU",
+      gpuTemp: "Temp. GPU",
+      vram: "VRAM",
+      ram: "RAM",
+    },
+    result: "Laudo da sessão",
+    duration: (total: string, load: string) => `${total} gravados · ${load} com jogo rodando`,
+    verdict: {
+      gpu: (r: SessionReport) => ({
+        title: "A placa de vídeo é o limite",
+        text: `A placa ficou no máximo em ${pctOf(r, "gpu")}% do tempo de jogo. É o normal num PC equilibrado: para mais FPS, baixe a resolução ou a qualidade gráfica, ative DLSS/FSR/XeSS ou troque a placa de vídeo.`,
+      }),
+      cpu: (r: SessionReport) => ({
+        title: "O processador é o limite",
+        text: `Em ${pctOf(r, "cpu")}% do tempo de jogo uma thread do processador ficou no máximo enquanto a placa de vídeo sobrava. Subir a qualidade gráfica sai quase de graça; para mais FPS, feche programas em segundo plano, ative o XMP/EXPO da memória ou considere um processador mais rápido (veja Upgrades).`,
+      }),
+      vram: (r: SessionReport) => ({
+        title: "A memória de vídeo é o limite",
+        text: `Em ${pctOf(r, "vram")}% do tempo de jogo a VRAM esteve cheia, o que causa engasgos (stutter). Baixe a qualidade das texturas ou a resolução.`,
+      }),
+      ram: (r: SessionReport) => ({
+        title: "A memória RAM é o limite",
+        text: `Em ${pctOf(r, "ram")}% do tempo de jogo a RAM esteve quase cheia e o sistema passou a usar o disco. Feche o navegador e outros programas enquanto joga; se acontecer sempre, veja Upgrades.`,
+      }),
+      thermal: (r: SessionReport) => ({
+        title: "A temperatura é o limite",
+        text: `Em ${pctOf(r, "thermal")}% do tempo de jogo o processador passou de 95 °C ou o driver da placa de vídeo segurou o clock por calor. Veja os detalhes abaixo.`,
+      }),
+      capped: () => ({
+        title: "Nada no limite",
+        text: "Processador e placa de vídeo tiveram folga. O jogo provavelmente tem limite de FPS ou V-Sync ligado, ou é leve para este PC. Se o FPS está baixo mesmo assim, o problema tende a ser o jogo ou o driver.",
+      }),
+      balanced: () => ({
+        title: "Carga equilibrada",
+        text: "Processador e placa de vídeo trabalharam perto do limite, sem um gargalo dominante.",
+      }),
+      idle: (r: SessionReport) => ({
+        title: "Pouco tempo de jogo",
+        text: `A sessão teve só ${dur(r.load_seconds)} com jogo rodando, pouco para um laudo. Grave enquanto joga por alguns minutos.`,
+      }),
+    },
+    limitsTitle: "O que limitou cada segundo de jogo",
+    limit: {
+      gpu: "Placa de vídeo",
+      cpu: "Processador",
+      vram: "VRAM cheia",
+      ram: "RAM cheia",
+      thermal: "Temperatura",
+      capped: "Nada no limite",
+    } as Record<string, string>,
+    charts: "Ao longo da sessão",
+    chartGpu: "Uso da GPU (%)",
+    chartThread: "Thread mais ocupada (%)",
+    chartCpuTemp: "Temperatura da CPU (°C)",
+    chartGpuTemp: "Temperatura da GPU (°C)",
+    stats: "Durante o jogo",
+    avg: "Média",
+    max: "Pico",
+    stat: {
+      cpu_usage: "Uso da CPU",
+      thread_max: "Thread mais ocupada",
+      cpu_mhz: "Clock da CPU",
+      cpu_temp: "Temperatura da CPU",
+      gpu_usage: "Uso da GPU",
+      gpu_mhz: "Clock da GPU",
+      gpu_temp: "Temperatura da GPU",
+      gpu_power: "Consumo da GPU",
+      vram_used: "VRAM em uso",
+      ram_used: "RAM em uso",
+    } as Record<string, string>,
+    noIssues: "Nenhum throttling, superaquecimento ou falta de memória durante a sessão.",
+    exportCsv: "Exportar CSV",
+    savedTo: "CSV salvo em",
+    lastSession: "Última sessão de jogo",
+    findings: {
+      "wrong-gpu": (_: SessionFindingOf<"wrong-gpu">, r: SessionReport) => ({
+        title: "Jogo rodando na placa integrada",
+        text: `A placa dedicada${r.context.gpu_name ? ` (${r.context.gpu_name})` : ""} ficou parada enquanto a integrada trabalhava. No Windows, escolha a placa em Configurações › Sistema › Tela › Gráficos; no Linux, abra o jogo com prime-run (NVIDIA) ou DRI_PRIME=1, ou ative "Usar placa de vídeo dedicada" no lançador.`,
+      }),
+      "cpu-throttle": (f: SessionFindingOf<"cpu-throttle">) => ({
+        title: "Processador reduzindo o clock",
+        text: `Caiu de ${ghz(f.peak_mhz)} para ${ghz(f.low_mhz)} por ${dur(f.seconds)}, a partir de ${clock(f.first_at)}. ${
+          f.cause === "heat"
+            ? `A temperatura chegou a ${Math.round(f.temp_max ?? 0)} °C: limpe a poeira, confira as ventoinhas e a pasta térmica.`
+            : f.cause === "power"
+              ? "A temperatura estava normal, então é limite de energia: no notebook, ligue na tomada e use o modo de desempenho; no desktop, confira o perfil de energia e os limites de potência no BIOS."
+              : "Pode ser calor ou limite de energia."
+        }`,
+      }),
+      "cpu-hot": (f: SessionFindingOf<"cpu-hot">) => ({
+        title: "Processador muito quente",
+        text: `Chegou a ${Math.round(f.temp_max)} °C e passou de 95 °C por ${dur(f.seconds)}. Limpe a poeira, confira as ventoinhas e a pasta térmica.`,
+      }),
+      "gpu-throttle": (f: SessionFindingOf<"gpu-throttle">) => ({
+        title: "Placa de vídeo reduzindo o clock",
+        text: `Caiu de ${f.peak_mhz} para ${f.low_mhz} MHz por ${dur(f.seconds)}, a partir de ${clock(f.first_at)}. ${
+          f.cause === "heat"
+            ? `${f.reported ? "O driver informou limite por temperatura" : "A temperatura chegou a " + Math.round(f.temp_max ?? 0) + " °C"}: limpe a poeira da placa e melhore a ventilação do gabinete.`
+            : f.cause === "power"
+              ? `${f.reported ? "O driver informou limite de potência" : "A temperatura estava normal, então a placa bateu no limite de potência"}. É comum em notebooks: ligue na tomada e use o modo de desempenho.`
+              : "Pode ser calor ou limite de potência."
+        }`,
+      }),
+      "gpu-hot": (f: SessionFindingOf<"gpu-hot">) => ({
+        title: "Placa de vídeo muito quente",
+        text: `Chegou a ${Math.round(f.temp_max)} °C e passou de 87 °C por ${dur(f.seconds)}. Melhore o fluxo de ar do gabinete e limpe a poeira da placa.`,
+      }),
+      "gpu-thermal-limit": (f: SessionFindingOf<"gpu-thermal-limit">) => ({
+        title: "Placa de vídeo limitada por calor",
+        text: `O driver informou que segurou o clock por temperatura durante ${dur(f.seconds)}${f.temp_max != null ? `, com a placa chegando a ${Math.round(f.temp_max)} °C` : ""}. Limpe a poeira da placa e melhore a ventilação do gabinete.`,
+      }),
+      "vram-full": (f: SessionFindingOf<"vram-full">) => ({
+        title: "VRAM no limite",
+        text: `O jogo usou ${bytes(f.peak_bytes)} de ${bytes(f.total_bytes)}. Quando a VRAM enche, texturas vão para a RAM e o jogo engasga (stutter). Baixe a qualidade das texturas.`,
+      }),
+      "ram-full": (f: SessionFindingOf<"ram-full">) => ({
+        title: "Memória RAM no limite",
+        text: `O uso chegou a ${bytes(f.peak_bytes)} de ${bytes(f.total_bytes)}${
+          f.swap_growth_bytes >= 2 ** 20 ? ` e o sistema mandou ${bytes(f.swap_growth_bytes)} para o disco (swap)` : ""
+        }. Isso causa travadinhas. Feche o navegador e outros programas enquanto joga; se acontecer sempre, veja Upgrades.`,
+      }),
+      "on-battery": (f: SessionFindingOf<"on-battery">) => ({
+        title: "Jogando na bateria",
+        text: `Por ${dur(f.seconds)} o notebook estava fora da tomada. Na bateria, processador e placa de vídeo ficam limitados para economizar energia.`,
+      }),
+      "short-session": (f: SessionFindingOf<"short-session">) => ({
+        title: "Sessão curta",
+        text: `Só ${dur(f.load_seconds)} de jogo. Para um laudo mais confiável, grave pelo menos 5 minutos jogando.`,
+      }),
+    },
+  },
   window: {
     minimize: "Minimizar",
     maximize: "Maximizar",
@@ -478,11 +761,6 @@ export const ptBR = {
     swapOf: "de",
     diagnostics: "Diagnóstico",
     noModulesToCheck: "Sem dados de módulos para analisar.",
-    singleChannel:
-      "Memória em single channel. Um segundo módulo em outro canal dobra a largura de banda, o que faz muita diferença em gráficos integrados.",
-    slow: (configured: number, rated: number) =>
-      `Módulos rodando a ${configured} MT/s, abaixo dos ${rated} MT/s nominais. Verifique se o XMP/EXPO está ativado no BIOS.`,
-    mixed: "Módulos de modelos diferentes. Funciona, mas kits iguais costumam ser mais estáveis.",
     allGood: "Configuração de memória sem problemas aparentes.",
     modules: "Módulos",
     noModules: "O sistema não informou os módulos instalados.",

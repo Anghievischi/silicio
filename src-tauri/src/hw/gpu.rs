@@ -7,6 +7,7 @@
 
 use super::pci::PcieLink;
 use nvml_wrapper::Nvml;
+use nvml_wrapper::bitmasks::device::ThrottleReasons;
 use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -41,6 +42,8 @@ pub struct GpuLive {
     pub voltage_mv: Option<u32>,
     pub fan_rpm: Option<u32>,
     pub fan_percent: Option<u32>,
+    /// Por que o driver está segurando o clock: "thermal" ou "power" (só NVIDIA).
+    pub limit: Option<&'static str>,
 }
 
 /// Mantém a NVML carregada entre leituras (inicializá-la é lento).
@@ -166,6 +169,20 @@ mod nvidia {
         }
     }
 
+    /// Motivo da limitação de clock pelos bits da NVML. Ociosidade e clocks fixados
+    /// pelo usuário não contam: não são limite de hardware.
+    fn limit(reasons: ThrottleReasons) -> Option<&'static str> {
+        let thermal = ThrottleReasons::SW_THERMAL_SLOWDOWN | ThrottleReasons::HW_THERMAL_SLOWDOWN;
+        let power = ThrottleReasons::SW_POWER_CAP | ThrottleReasons::HW_POWER_BRAKE_SLOWDOWN;
+        if reasons.intersects(thermal) {
+            Some("thermal")
+        } else if reasons.intersects(power) {
+            Some("power")
+        } else {
+            None
+        }
+    }
+
     pub fn merge_live(nvml: &Nvml, samples: &mut Vec<GpuLive>) {
         for i in 0..nvml.device_count().unwrap_or(0) {
             let Ok(dev) = nvml.device_by_index(i) else {
@@ -184,6 +201,7 @@ mod nvidia {
                     .map(|t| t as f32),
                 power_w: dev.power_usage().ok().map(|mw| mw as f32 / 1000.0),
                 fan_percent: dev.fan_speed(0).ok(),
+                limit: dev.current_throttle_reasons().ok().and_then(limit),
                 ..Default::default()
             };
             match samples.iter_mut().find(|s| same_pci(&s.id, &sample.id)) {

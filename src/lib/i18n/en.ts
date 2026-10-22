@@ -1,4 +1,13 @@
+import { bytes, clock, ghz } from "$lib/format";
+import type { SessionLimit, SessionReport } from "$lib/types";
 import type { Messages } from "./pt-BR";
+
+/** "45 s", "2 min 30 s", "1 h 05 min". */
+const dur = (s: number) =>
+  s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ""}` : `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min`;
+
+/** Parte do tempo de jogo (%) em que `code` foi o limite. */
+const pctOf = (r: SessionReport, code: SessionLimit) => r.limits.find((l) => l.code === code)?.pct ?? 0;
 
 export const en: Messages = {
   tabs: {
@@ -13,6 +22,8 @@ export const en: Messages = {
     peripherals: "Peripherals",
     bench: "Benchmark",
     upgrades: "Upgrades",
+    diagnosis: "Health check",
+    gaming: "Gaming",
   },
   common: {
     soon: "soon",
@@ -273,6 +284,277 @@ export const en: Messages = {
       "Before buying, check the supported CPU list on the board maker's website and update the BIOS.",
     disclaimer: "Suggestions generated from system data. Confirm the specifications with the manufacturer before buying.",
   },
+  diagnosis: {
+    title: "Health check",
+    intro: "What is slowing this computer down or close to causing trouble, and what to do about it.",
+    loading: "Checking the computer…",
+    error: "Could not run the health check",
+    status: {
+      good: "All good",
+      attention: "Needs attention",
+      problem: "Problems found",
+    },
+    score: "Score",
+    counts: (problems, warnings, tips) =>
+      [
+        problems && `${problems} problem${problems > 1 ? "s" : ""}`,
+        warnings && `${warnings} warning${warnings > 1 ? "s" : ""}`,
+        tips && `${tips} tip${tips > 1 ? "s" : ""}`,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "Nothing to report",
+    severity: { problem: "Problem", warning: "Warning", info: "Tip" },
+    none: "No problems found in the memory, processor, drives, battery or peripherals.",
+    open: (tab) => `See in ${tab}`,
+    more: "See health check",
+    disclaimer:
+      "The health check only uses what the system reports, without running tests. A rule only shows up when the data makes the problem clear.",
+    findings: {
+      "memory-single-channel": () => ({
+        title: "Memory in single channel",
+        text: "With a single channel, the memory has half the bandwidth. A second matching module, in the other channel's slot, makes a big difference in games and integrated graphics.",
+      }),
+      "memory-profile-off": (f) => {
+        const name = f.profile.toUpperCase();
+        const gain = Math.round((f.profile_mts / f.current_mts - 1) * 100);
+        return {
+          title: `${name} profile disabled`,
+          text: `The memory runs at ${f.current_mts} MT/s, but the kit has a ${f.profile_mts} MT/s profile (${gain}% faster). Enable ${name} in the BIOS; some boards call it DOCP or "memory profile".`,
+        };
+      },
+      "memory-below-rated": (f) => ({
+        title: "Memory below its rated speed",
+        text: `The modules run at ${f.current_mts} MT/s, below the ${f.rated_mts} MT/s they report. On a desktop, enable XMP/EXPO in the BIOS; on laptops the limit usually comes from the processor.`,
+      }),
+      "memory-mixed": () => ({
+        title: "Modules of different models",
+        text: "It works, but matched kits tend to be more stable. If you get crashes, test with matching modules only.",
+      }),
+      "memory-low": (f) => ({
+        title: `Only ${bytes(f.installed_bytes)} of memory`,
+        text:
+          f.installed_bytes < 7 * 1024 ** 3
+            ? "With this little memory, the system falls back to the disk (swap) and gets slow. 16 GB is the comfortable amount today; see the Upgrades tab."
+            : "Fine for everyday use, but tight with many browser tabs and current games. 16 GB is the comfortable amount today; see the Upgrades tab.",
+      }),
+      "cpu-powersave": (f) => ({
+        title: "Processor stuck at its minimum clock",
+        text: `With the ${f.driver} driver, the "powersave" governor keeps the processor at its lowest frequency. Switch to "schedutil" (for example, sudo cpupower frequency-set -g schedutil) or change the system power profile.`,
+      }),
+      "gpu-link-narrow": (f) => ({
+        title: `Graphics card on PCIe x${f.current_width}`,
+        text: `It supports x${f.max_width}, but is linked with ${f.current_width} lanes. Check that it is in the main slot (the one closest to the processor) and that an M.2 SSD or another card is not sharing its lanes.`,
+      }),
+      "gpu-no-driver": () => ({
+        title: "Graphics card without a driver",
+        text: "The system found the dedicated card, but no driver is loaded, so it is not being used. Install the manufacturer's driver.",
+      }),
+      "gpu-nouveau": () => ({
+        title: "NVIDIA card on the nouveau driver",
+        text: "The open nouveau driver cannot raise the clock of recent cards, which end up much slower. For games and creative work, install the NVIDIA driver.",
+      }),
+      "disk-failing": () => ({
+        title: "Drive failing",
+        text: "The drive itself reports a fault. Back up now and plan the replacement: it may stop working at any time.",
+      }),
+      "disk-caution": (f) => ({
+        title: "Drive showing wear",
+        text: [
+          f.life_left != null && f.life_left <= 10 && `${f.life_left}% of its life is left.`,
+          f.bad_sectors && `It has ${f.bad_sectors} bad sectors.`,
+          "Keep your backups current and watch its health in the Storage tab.",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      }),
+      "disk-life": (f) => {
+        const years = f.hours_left / (8 * 365);
+        return {
+          title: `SSD life left: ${f.life_left}%`,
+          text: `At the pace so far, it should last about ${Math.round(f.hours_left / 1000)} thousand more powered-on hours (${years > 20 ? "over 20 years" : `around ${Math.max(1, Math.round(years))} year${Math.round(years) > 1 ? "s" : ""}`} at 8 hours a day).`,
+        };
+      },
+      "disk-full": (f) => ({
+        title: `${f.mount_point} almost full`,
+        text: `${bytes(f.free_bytes)} left (${f.free_pct}%). With a full drive the system slows down, updates fail and SSDs lose write speed. Free up space or move large files.`,
+      }),
+      "disk-hot": (f) => ({
+        title: `Drive at ${Math.round(f.temperature_c)} °C`,
+        text: "At this temperature SSDs slow down to protect themselves, and hard drives wear faster. Improve the airflow or add a heatsink to the M.2 SSD.",
+      }),
+      "system-on-hdd": (f) => ({
+        title: "System on a hard drive",
+        text: `${f.mount_point} is on a mechanical drive. Moving to an SSD is the upgrade that speeds up everyday use the most: booting, opening programs and updating.`,
+      }),
+      "disk-link-narrow": (f) => ({
+        title: `SSD on PCIe x${f.current_width}`,
+        text: `It supports x${f.max_width}. Some boards cut the lanes of an M.2 slot when another one is in use; the board manual says which slot has full x4.`,
+      }),
+      "battery-worn": (f) => ({
+        title: `Battery at ${f.health_pct}% of its original capacity`,
+        text: `${f.cycles ? `After ${f.cycles} cycles, it` : "It"} holds ${f.health_pct}% of the charge it held when new. ${f.health_pct < 60 ? "It is worth replacing." : "This is normal wear: replace it when the runtime is no longer enough."}`,
+      }),
+      "bios-old": (f) => ({
+        title: `BIOS over ${f.years} years old`,
+        text: "BIOS updates fix security flaws, memory compatibility and stability. Check the manufacturer's site for a newer version and do not turn the computer off during the update.",
+      }),
+      "usb-slow-port": (f) => ({
+        title: "USB 3 device on a USB 2 port",
+        text: `It is linked at ${f.speed_mbps} Mbps, a fraction of what it supports. Use a USB 3 port (usually blue or marked SS) and a USB 3 cable.`,
+      }),
+    },
+  },
+  gaming: {
+    title: "Gaming session",
+    intro: "Record while you play: Silício measures the processor, graphics card and memory every second and tells you what limits performance.",
+    howTo: [
+      "Click Record session.",
+      "Open the game and play normally for a few minutes. You can minimize Silício.",
+      "Come back and click Stop and analyze.",
+    ],
+    noFps: "Silício does not measure FPS: on Linux that would require hooking into the game, and on Windows running as administrator. The report comes from how the hardware behaved.",
+    start: "Record session",
+    stop: "Stop and analyze",
+    starting: "Starting…",
+    newSession: "New session",
+    recording: "Recording",
+    recordingHint: "You can open the game now. Recording continues with Silício minimized or on another tab.",
+    error: "Could not record the session",
+    live: {
+      cpu: "CPU",
+      thread: "Busiest thread",
+      gpu: "GPU",
+      cpuTemp: "CPU temp",
+      gpuTemp: "GPU temp",
+      vram: "VRAM",
+      ram: "RAM",
+    },
+    result: "Session report",
+    duration: (total, load) => `${total} recorded · ${load} with a game running`,
+    verdict: {
+      gpu: (r) => ({
+        title: "The graphics card is the limit",
+        text: `The card was maxed out ${pctOf(r, "gpu")}% of the game time. That is normal on a balanced PC: for more FPS, lower the resolution or graphics quality, enable DLSS/FSR/XeSS or upgrade the graphics card.`,
+      }),
+      cpu: (r) => ({
+        title: "The processor is the limit",
+        text: `For ${pctOf(r, "cpu")}% of the game time one processor thread was maxed out while the graphics card had headroom. Raising graphics quality is almost free; for more FPS, close background programs, enable the memory's XMP/EXPO or consider a faster processor (see Upgrades).`,
+      }),
+      vram: (r) => ({
+        title: "Video memory is the limit",
+        text: `For ${pctOf(r, "vram")}% of the game time the VRAM was full, which causes stutter. Lower the texture quality or the resolution.`,
+      }),
+      ram: (r) => ({
+        title: "RAM is the limit",
+        text: `For ${pctOf(r, "ram")}% of the game time the RAM was nearly full and the system fell back to the disk. Close the browser and other programs while playing; if it always happens, see Upgrades.`,
+      }),
+      thermal: (r) => ({
+        title: "Temperature is the limit",
+        text: `For ${pctOf(r, "thermal")}% of the game time the processor went above 95 °C or the graphics driver held the clock back because of heat. See the details below.`,
+      }),
+      capped: () => ({
+        title: "Nothing at the limit",
+        text: "Both the processor and the graphics card had headroom. The game probably has an FPS cap or V-Sync on, or it is light for this PC. If FPS is low anyway, the cause is likely the game or the driver.",
+      }),
+      balanced: () => ({
+        title: "Balanced load",
+        text: "The processor and the graphics card both worked close to their limits, with no dominant bottleneck.",
+      }),
+      idle: (r) => ({
+        title: "Too little game time",
+        text: `The session had only ${dur(r.load_seconds)} with a game running, too little for a report. Record while playing for a few minutes.`,
+      }),
+    },
+    limitsTitle: "What limited each second of play",
+    limit: {
+      gpu: "Graphics card",
+      cpu: "Processor",
+      vram: "VRAM full",
+      ram: "RAM full",
+      thermal: "Temperature",
+      capped: "Nothing at the limit",
+    },
+    charts: "Over the session",
+    chartGpu: "GPU usage (%)",
+    chartThread: "Busiest thread (%)",
+    chartCpuTemp: "CPU temperature (°C)",
+    chartGpuTemp: "GPU temperature (°C)",
+    stats: "While gaming",
+    avg: "Average",
+    max: "Peak",
+    stat: {
+      cpu_usage: "CPU usage",
+      thread_max: "Busiest thread",
+      cpu_mhz: "CPU clock",
+      cpu_temp: "CPU temperature",
+      gpu_usage: "GPU usage",
+      gpu_mhz: "GPU clock",
+      gpu_temp: "GPU temperature",
+      gpu_power: "GPU power",
+      vram_used: "VRAM used",
+      ram_used: "RAM used",
+    },
+    noIssues: "No throttling, overheating or memory shortage during the session.",
+    exportCsv: "Export CSV",
+    savedTo: "CSV saved to",
+    lastSession: "Last gaming session",
+    findings: {
+      "wrong-gpu": (_, r) => ({
+        title: "Game running on the integrated graphics",
+        text: `The dedicated card${r.context.gpu_name ? ` (${r.context.gpu_name})` : ""} sat idle while the integrated graphics did the work. On Windows, pick the card in Settings › System › Display › Graphics; on Linux, launch the game with prime-run (NVIDIA) or DRI_PRIME=1, or enable "Use dedicated graphics card" in the launcher.`,
+      }),
+      "cpu-throttle": (f) => ({
+        title: "Processor lowering its clock",
+        text: `It dropped from ${ghz(f.peak_mhz)} to ${ghz(f.low_mhz)} for ${dur(f.seconds)}, starting at ${clock(f.first_at)}. ${
+          f.cause === "heat"
+            ? `The temperature reached ${Math.round(f.temp_max ?? 0)} °C: clean the dust and check the fans and thermal paste.`
+            : f.cause === "power"
+              ? "The temperature was normal, so it is a power limit: on a laptop, plug it in and use the performance mode; on a desktop, check the power profile and the power limits in the BIOS."
+              : "It may be heat or a power limit."
+        }`,
+      }),
+      "cpu-hot": (f) => ({
+        title: "Processor running very hot",
+        text: `It reached ${Math.round(f.temp_max)} °C and stayed above 95 °C for ${dur(f.seconds)}. Clean the dust and check the fans and thermal paste.`,
+      }),
+      "gpu-throttle": (f) => ({
+        title: "Graphics card lowering its clock",
+        text: `It dropped from ${f.peak_mhz} to ${f.low_mhz} MHz for ${dur(f.seconds)}, starting at ${clock(f.first_at)}. ${
+          f.cause === "heat"
+            ? `${f.reported ? "The driver reported a thermal limit" : "The temperature reached " + Math.round(f.temp_max ?? 0) + " °C"}: clean the card and improve the case airflow.`
+            : f.cause === "power"
+              ? `${f.reported ? "The driver reported a power limit" : "The temperature was normal, so the card hit its power limit"}. This is common on laptops: plug it in and use the performance mode.`
+              : "It may be heat or a power limit."
+        }`,
+      }),
+      "gpu-hot": (f) => ({
+        title: "Graphics card running very hot",
+        text: `It reached ${Math.round(f.temp_max)} °C and stayed above 87 °C for ${dur(f.seconds)}. Improve the case airflow and clean the dust off the card.`,
+      }),
+      "gpu-thermal-limit": (f) => ({
+        title: "Graphics card held back by heat",
+        text: `The driver reported holding the clock back because of temperature for ${dur(f.seconds)}${f.temp_max != null ? `, with the card reaching ${Math.round(f.temp_max)} °C` : ""}. Clean the dust off the card and improve the case airflow.`,
+      }),
+      "vram-full": (f) => ({
+        title: "VRAM at its limit",
+        text: `The game used ${bytes(f.peak_bytes)} of ${bytes(f.total_bytes)}. When VRAM fills up, textures spill into RAM and the game stutters. Lower the texture quality.`,
+      }),
+      "ram-full": (f) => ({
+        title: "RAM at its limit",
+        text: `Usage reached ${bytes(f.peak_bytes)} of ${bytes(f.total_bytes)}${
+          f.swap_growth_bytes >= 2 ** 20 ? ` and the system moved ${bytes(f.swap_growth_bytes)} to disk (swap)` : ""
+        }. That causes stutter. Close the browser and other programs while playing; if it always happens, see Upgrades.`,
+      }),
+      "on-battery": (f) => ({
+        title: "Playing on battery",
+        text: `For ${dur(f.seconds)} the laptop was unplugged. On battery, the processor and graphics card are limited to save power.`,
+      }),
+      "short-session": (f) => ({
+        title: "Short session",
+        text: `Only ${dur(f.load_seconds)} of gameplay. For a more reliable report, record at least 5 minutes of play.`,
+      }),
+    },
+  },
   window: {
     minimize: "Minimize",
     maximize: "Maximize",
@@ -473,11 +755,6 @@ export const en: Messages = {
     swapOf: "of",
     diagnostics: "Diagnostics",
     noModulesToCheck: "No module data to analyze.",
-    singleChannel:
-      "Memory is running in single channel. A second module in another channel doubles the bandwidth, which matters a lot for integrated graphics.",
-    slow: (configured, rated) =>
-      `Modules running at ${configured} MT/s, below the rated ${rated} MT/s. Check that XMP/EXPO is enabled in the BIOS.`,
-    mixed: "Modules of different models. It works, but matched kits tend to be more stable.",
     allGood: "No apparent problems with the memory configuration.",
     modules: "Modules",
     noModules: "The system did not report the installed modules.",

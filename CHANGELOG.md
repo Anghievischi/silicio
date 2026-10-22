@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Health check tab**: Silício now crosses everything it reads and points out what is slowing the computer down or close to causing trouble, each with what to do about it, plus a score from 0 to 100. It checks memory (single channel, an XMP/EXPO profile left off, below the rated speed, mixed modules, too little memory), the processor governor stuck at the minimum clock on Linux, a dedicated graphics card on fewer PCIe lanes than it supports or without a driver, drives (failing, worn, almost full, hot, the system on a hard drive, an NVMe SSD on fewer lanes) with a projection of the SSD's life left, a worn laptop battery, a BIOS over three years old and USB 3 drives plugged into a USB 2 port. Rules only fire when the data makes the problem clear.
+- The score and the main finding on the Overview, a section in the exported report and `diagnosis` in `silicio --json`.
+
+- **Gaming tab**: record a session while you play and get a report of what limited performance: the graphics card, the processor (one thread maxed out while the card had headroom) or neither (FPS cap or V-Sync). It also catches a game running on the integrated graphics of a hybrid laptop, CPU and GPU throttling (telling heat from a power limit), overheating, full VRAM or RAM, and playing on battery. Recording runs in the background with Silício minimized, the status bar shows it on every tab, and the samples export to CSV. A bar shows what limited each second of play (graphics card, processor, temperature, VRAM, RAM or nothing), an idea from [ResetExplode](https://github.com/GustavoReset/ResetExplode). On NVIDIA cards the throttling cause comes from the driver itself instead of being inferred from the temperature. FPS is not measured: on Linux that would require hooking into the game, and on Windows reading frame events (ETW) requires administrator rights.
+- `silicio --session 300` records a session from the command line and prints the report as JSON.
+
+### Changed
+
+- The Memory tab's diagnostics come from the same health check, so it also catches an XMP/EXPO profile left off.
+
 ## [0.6.2]
 
 ### Removed
