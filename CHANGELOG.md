@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.7.0]
+
 ### Added
 
 - **Health check tab**: Silício now crosses everything it reads and points out what is slowing the computer down or close to causing trouble, each with what to do about it, plus a score from 0 to 100. It checks memory (single channel, an XMP/EXPO profile left off, below the rated speed, mixed modules, too little memory), the processor governor stuck at the minimum clock on Linux, a dedicated graphics card on fewer PCIe lanes than it supports or without a driver, drives (failing, worn, almost full, hot, the system on a hard drive, an NVMe SSD on fewer lanes) with a projection of the SSD's life left, a worn laptop battery, a BIOS over three years old and USB 3 drives plugged into a USB 2 port. Rules only fire when the data makes the problem clear.
@@ -165,7 +167,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Anghievischi/silicio/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/Anghievischi/silicio/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Anghievischi/silicio/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Anghievischi/silicio/compare/v0.5.0...v0.6.0
