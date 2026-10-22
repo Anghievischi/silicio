@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Removed
+
+- **The PawnIO driver and the CPU temperature on Windows.** Installing PawnIO from the 0.6.1 installer crashed Windows (blue screen) on a user's PC. Silício no longer installs, offers or uses any kernel driver on Windows. Without one, Windows has no reliable way to read the processor sensor, so the CPU temperature, core voltage, real bus clock and the heat warning are now Linux-only. If you installed PawnIO through 0.6.1, you can remove it in Settings → Apps.
+
+### Changed
+
+- On Windows the Processor tab shows the socket and external clock right away, without the Unlock button or a UAC prompt.
+
 ## [0.6.1]
 
 ### Fixed

@@ -40,7 +40,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 | Mapa de núcleos ao vivo agrupado como no chip (grupos de L3 / CCX da AMD, núcleos P e E da Intel) | ❌ | ✅ |
 | Nome, codinome, processo, família/modelo/stepping, instruções e caches da CPU | ✅ | ✅ |
 | Clock ao vivo por thread, com gráfico | Janela Clocks | ✅ |
-| Temperatura e uso da CPU por thread | ❌ | ✅ |
+| Uso da CPU por thread e temperatura | ❌ | ✅ (temperatura só no Linux ³) |
 | Tensão do núcleo, bus real, soquete | ✅ | ✅ Linux ¹ |
 | Placa-mãe, BIOS, chipset, link PCIe de cada GPU | ✅ | ✅ |
 | Tipo, canais e frequência da memória, módulos instalados | ✅ | ✅ |
@@ -64,6 +64,7 @@ Os links sempre apontam para a versão mais recente. As anteriores estão na [p�
 
 ¹ Lê registradores da CPU por um pequeno helper com root, iniciado via `pkexec`; o sistema pede sua senha uma vez.
 ² No Linux. O Windows não oferece um jeito seguro de ler o SPD sem acessar o barramento SMBus direto.
+³ No Windows, ler o sensor do processador exige instalar um driver de kernel. O Silício não instala drivers, por segurança.
 
 <details>
 <summary><b>Mais screenshots</b></summary>
@@ -102,7 +103,7 @@ scoop install silicio
 
 O Windows 10 e 11 já trazem o WebView2 que o app usa. Se faltar, o instalador baixa sozinho.
 
-Temperatura do processador, clock máximo (AMD), tensão e bus real usam o driver **[PawnIO](https://pawnio.eu)**. O instalador oferece instalá-lo no final (na versão portátil, instale à parte: `winget install namazso.PawnIO`). Com ele instalado, clique em **Desbloquear** na aba Processador e autorize no UAC.
+O Silício não instala drivers no Windows e não pede permissão de administrador. Por isso a temperatura, a tensão e o bus real do processador ficam só no Linux. Quem instalou o driver PawnIO pela versão 0.6.1 pode removê-lo em Configurações → Aplicativos.
 
 Se o app não abrir, procure o arquivo `silicio-crash.log` na pasta temporária (digite `%TEMP%` na barra de endereço do Explorer) e anexe num [relato de bug](https://github.com/Anghievischi/silicio/issues/new?template=bug_report.yml).
 
@@ -161,11 +162,11 @@ O Silício lê o hardware só por interfaces públicas:
 |------|-------|---------|
 | Identificação da CPU, caches, instruções | instrução `CPUID` | instrução `CPUID` |
 | Clocks, uso, memória em uso | `sysinfo` (cpufreq) | `sysinfo` |
-| Temperaturas, sensores da GPU | hwmon (`k10temp`, `coretemp`, `amdgpu`) | CPU pelo PawnIO, GPU pelo NVML (NVIDIA) |
+| Temperaturas, sensores da GPU | hwmon (`k10temp`, `coretemp`, `amdgpu`) | GPU pelo NVML (NVIDIA) |
 | Placa-mãe, BIOS, módulos de memória | DMI no sysfs, SMBIOS decodificado pelo udev | WMI |
 | Chipset, links PCIe | `/sys/bus/pci` + `pci.ids` | planejado |
 | EEPROM SPD | drivers `ee1004` / `spd5118` | — |
-| Tensão, bus real, clock máximo, soquete | MSR + SMBIOS bruto pelo helper com root | MSR pelo PawnIO + SMBIOS do firmware |
+| Tensão, bus real, clock máximo, soquete | MSR + SMBIOS bruto pelo helper com root | só o soquete, pelo SMBIOS do firmware |
 | Gráficos | sysfs de `amdgpu`, `i915`, `xe` + NVML | WMI + NVML |
 | Discos e SMART | `/sys/block` + udisks2 (D-Bus), sem root | `IOCTL_STORAGE_QUERY_PROPERTY`, sem administrador |
 | Bateria do notebook | `/sys/class/power_supply` | `IOCTL_BATTERY_QUERY_*` |
@@ -214,7 +215,6 @@ A estrutura do projeto está descrita no [README em inglês](README.md#building-
 - [x] Visão geral, mapa de núcleos ao vivo e exportação do relatório
 - [x] Helper com root para MSR e SMBIOS no Linux
 - [x] Decodificação de perfis XMP / EXPO e SPD DDR5
-- [x] Temperatura, clocks e tensão no Windows com o driver PawnIO
 - [x] Interface em português e inglês
 - [ ] Mais traduções (contribuições são bem-vindas)
 - [x] Aba Periféricos (telas, USB/Bluetooth, áudio, câmeras) com testes interativos

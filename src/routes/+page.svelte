@@ -7,7 +7,7 @@
   import Sparkline from "$lib/components/Sparkline.svelte";
   import { batteryHealth, bytes, diskInterface, diskName, diskSize, ghz, or, smbiosDate } from "$lib/format";
   import { i18n, t } from "$lib/i18n/index.svelte";
-  import { reportDialog, shareDialog } from "$lib/system.svelte";
+  import { isWindows, reportDialog, shareDialog } from "$lib/system.svelte";
   import type { BoardInfo, CpuInfo, CpuLive, Disk, Gpu, GpuLive, MemoryInfo, MemoryLive, SystemBattery } from "$lib/types";
   import { loadUpgrades, upgrades } from "$lib/upgrades.svelte";
 
@@ -111,7 +111,7 @@
     </div>
   </section>
 
-  <div class="gauges">
+  <div class="gauges" class:four={isWindows}>
     <Gauge label={t().overview.cpuLoad} value={live?.usage ?? null} max={100} format={(v) => `${v.toFixed(0)}%`} color={level(live?.usage ?? 0)} />
     <Gauge
       label={t().overview.clock}
@@ -120,14 +120,16 @@
       format={(v) => (v / 1000).toFixed(2)}
       sub="GHz · {t().overview.ofMax(ghz(maxMhz))}"
     />
-    <Gauge
-      label={t().common.temperature}
-      value={live?.temperature_c ?? null}
-      max={105}
-      format={(v) => `${v.toFixed(0)}°`}
-      sub={live?.temperature_c == null ? t().overview.noSensor : "°C"}
-      color={tempColor(live?.temperature_c ?? 0)}
-    />
+    {#if !isWindows}
+      <Gauge
+        label={t().common.temperature}
+        value={live?.temperature_c ?? null}
+        max={105}
+        format={(v) => `${v.toFixed(0)}°`}
+        sub={live?.temperature_c == null ? t().overview.noSensor : "°C"}
+        color={tempColor(live?.temperature_c ?? 0)}
+      />
+    {/if}
     <Gauge
       label={t().overview.ram}
       value={ramUsage}
@@ -357,6 +359,10 @@
     margin-bottom: 12px;
   }
 
+  .gauges.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .upgrade {
     grid-column: 1 / -1;
     display: flex;
@@ -480,13 +486,15 @@
   }
 
   @media (max-width: 900px) {
-    .gauges {
+    .gauges,
+    .gauges.four {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 560px) {
-    .gauges {
+    .gauges,
+    .gauges.four {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }

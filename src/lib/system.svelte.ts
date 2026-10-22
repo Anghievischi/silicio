@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { SystemBattery, SystemInfo } from "$lib/types";
 
+/** No Windows o Silício não lê a temperatura do processador (exigiria um driver). */
+export const isWindows = navigator.userAgent.includes("Windows");
+
 /** Versão do app e sistema operacional, lidos uma vez e usados em várias telas. */
 export const system = $state<{ info: SystemInfo | null; hasBattery: boolean }>({ info: null, hasBattery: false });
 

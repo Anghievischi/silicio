@@ -7,13 +7,12 @@
   import { ghz, hex, size } from "$lib/format";
   import { t } from "$lib/i18n/index.svelte";
   import { privileged, unlock } from "$lib/privileged.svelte";
+  import { isWindows } from "$lib/system.svelte";
   import type { CpuInfo, CpuLive } from "$lib/types";
 
   const HISTORY = 60;
   // Clock de referência nominal das plataformas atuais, usado até o MSR ser lido.
   const NOMINAL_BUS_MHZ = 100;
-  // O helper com privilégio usa pkexec no Linux e o PawnIO (pelo UAC) no Windows.
-  const isWindows = navigator.userAgent.includes("Windows");
 
   let bus = $derived(privileged.data?.bus_mhz ?? null);
   let busMhz = $derived(bus ?? NOMINAL_BUS_MHZ);
@@ -29,7 +28,7 @@
   let copied = $state(false);
 
   let l3 = $derived(info?.caches.filter((c) => c.level === 3).reduce((sum, c) => sum + c.size_kib * c.instances, 0) ?? 0);
-  // No Windows o clock máximo da AMD só aparece depois da autorização.
+  // Sem o cpufreq informando, o clock máximo vem dos MSRs depois da autorização.
   $effect(() => {
     const max = privileged.data?.max_mhz;
     if (max && info && !info.clocks.max_mhz) info.clocks.max_mhz = max;
@@ -111,17 +110,16 @@
       <span class="muted">{t().cpu.l3Cache}</span>
       <strong class="num">{l3 ? size(l3) : "—"}</strong>
     </div>
-    <div class="stat">
-      <span class="muted">{t().common.temperature}</span>
-      {#if live?.temperature_c != null}
-        <strong class="num" style:color={tempColor(live.temperature_c)}>{live.temperature_c.toFixed(0)} °C</strong>
-        {#if live.temperature_source === "acpi"}
-          <span class="muted source" title={t().cpu.tempAcpiHint}>{t().cpu.tempAcpi}</span>
+    {#if !isWindows}
+      <div class="stat">
+        <span class="muted">{t().common.temperature}</span>
+        {#if live?.temperature_c != null}
+          <strong class="num" style:color={tempColor(live.temperature_c)}>{live.temperature_c.toFixed(0)} °C</strong>
+        {:else}
+          <strong class="muted">—</strong>
         {/if}
-      {:else}
-        <strong class="muted">—</strong>
-      {/if}
-    </div>
+      </div>
+    {/if}
   </div>
 
   <div class="grid">
@@ -184,15 +182,18 @@
         {@const p = privileged.data}
         <div class="adv">
           <div><span class="muted">{t().cpu.socket}</span><strong>{p.processor?.socket ?? "—"}</strong></div>
-          <div>
-            <span class="muted">{t().cpu.vid}</span>
-            <strong class="num">{vcore ? `${vcore.toFixed(3)} V` : "—"}</strong>
-          </div>
-          <div><span class="muted">{t().cpu.realBus}</span><strong class="num">{bus ? `${bus.toFixed(2)} MHz` : "—"}</strong></div>
-          <div>
-            <span class="muted">{t().cpu.baseMultiplier}</span>
-            <strong class="num">{p.base_ratio ? `x${p.base_ratio.toFixed(1)}` : "—"}</strong>
-          </div>
+          <!-- Tensão, bus real e multiplicador vêm dos MSRs, que só o Linux lê. -->
+          {#if !isWindows}
+            <div>
+              <span class="muted">{t().cpu.vid}</span>
+              <strong class="num">{vcore ? `${vcore.toFixed(3)} V` : "—"}</strong>
+            </div>
+            <div><span class="muted">{t().cpu.realBus}</span><strong class="num">{bus ? `${bus.toFixed(2)} MHz` : "—"}</strong></div>
+            <div>
+              <span class="muted">{t().cpu.baseMultiplier}</span>
+              <strong class="num">{p.base_ratio ? `x${p.base_ratio.toFixed(1)}` : "—"}</strong>
+            </div>
+          {/if}
           <div>
             <span class="muted">{t().cpu.externalClock}</span>
             <strong class="num">{p.processor?.external_clock_mhz ? `${p.processor.external_clock_mhz} MHz` : "—"}</strong>
@@ -201,9 +202,11 @@
         {#if p.errors.length}
           <p class="hint muted">{t().cpu.someFailed(p.errors.join("; "))}</p>
         {/if}
+      {:else if isWindows}
+        <p class="muted">{privileged.error ?? t().cpu.loading}</p>
       {:else}
         <div class="unlock">
-          <p class="muted">{isWindows ? t().cpu.unlockTextWindows : t().cpu.unlockText}</p>
+          <p class="muted">{t().cpu.unlockText}</p>
           <button class="ghost" onclick={unlock} disabled={privileged.loading}>
             {privileged.loading ? t().cpu.waitingAuth : t().cpu.unlock}
           </button>
@@ -277,10 +280,6 @@
     font-size: 12px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-  }
-
-  .source {
-    font-size: 11px;
   }
 
   .adv {
