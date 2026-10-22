@@ -1,12 +1,12 @@
 {
-    "version": "0.6.2",
+    "version": "0.7.0",
     "description": "Modern open-source CPU-Z alternative: CPU, motherboard, memory, SPD and GPU with live data",
     "homepage": "https://github.com/Anghievischi/silicio",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Anghievischi/silicio/releases/download/v0.6.2/Silicio-portable.exe#/Silicio.exe",
-            "hash": "5a4d91a4c125894fd732c4204c60de601e923efa23bf8a66a3e0b38ffaa38df7"
+            "url": "https://github.com/Anghievischi/silicio/releases/download/v0.7.0/Silicio-portable.exe#/Silicio.exe",
+            "hash": "d71b285ff0d4af9033b0023d2eb5f1cc0c040a0e27463b57875fbde8e229fd18"
         }
     },
     "bin": "Silicio.exe",

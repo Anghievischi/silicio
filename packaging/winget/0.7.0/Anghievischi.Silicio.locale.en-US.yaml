@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
 PackageIdentifier: Anghievischi.Silicio
-PackageVersion: 0.6.2
+PackageVersion: 0.7.0
 PackageLocale: en-US
 Publisher: Diógenes A. Anghievischi
 PublisherUrl: https://github.com/Anghievischi
@@ -15,6 +15,6 @@ Tags:
 - hardware
 - system-information
 - benchmark
-ReleaseNotesUrl: https://github.com/Anghievischi/silicio/releases/tag/v0.6.2
+ReleaseNotesUrl: https://github.com/Anghievischi/silicio/releases/tag/v0.7.0
 ManifestType: defaultLocale
 ManifestVersion: 1.9.0
