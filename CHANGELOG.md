@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.6.2]
+
 ### Removed
 
 - **The PawnIO driver and the CPU temperature on Windows.** Installing PawnIO from the 0.6.1 installer crashed Windows (blue screen) on a user's PC. Silício no longer installs, offers or uses any kernel driver on Windows. Without one, Windows has no reliable way to read the processor sensor, so the CPU temperature, core voltage, real bus clock and the heat warning are now Linux-only. If you installed PawnIO through 0.6.1, you can remove it in Settings → Apps.
@@ -151,7 +153,8 @@ First public version.
 - Installers for Windows (`.exe`, `.msi`, portable) and Linux (`.deb`, `.rpm`, `.AppImage`).
 - Community files: contributing guide, code of conduct, security policy, issue and pull request templates, CI on Linux and Windows.
 
-[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/Anghievischi/silicio/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/Anghievischi/silicio/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Anghievischi/silicio/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Anghievischi/silicio/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Anghievischi/silicio/compare/v0.4.0...v0.5.0

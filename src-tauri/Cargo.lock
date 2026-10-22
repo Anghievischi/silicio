@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "silicio"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "libc",
  "nvml-wrapper",
